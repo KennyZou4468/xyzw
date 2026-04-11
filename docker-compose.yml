@@ -1,0 +1,9 @@
+services:
+  web:
+    container_name: xyzw-web-local
+    build:
+      context: .
+      dockerfile: docker/dockerfile
+    image: xyzw-web:local
+    ports:
+      - "127.0.0.1:8080:80"
