@@ -1,6 +1,7 @@
 services:
   web:
     container_name: xyzw-web-local
+    restart: unless-stopped
     build:
       context: .
       dockerfile: docker/dockerfile

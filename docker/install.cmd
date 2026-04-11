@@ -1,3 +1,11 @@
-docker load ./xzyw_web_helper.docker
+@echo off
 
-docker run -d -p 8080:80 --name my_xyzw_web_helper xyzw_web_helper:latest
+if exist .\xzyw_web_helper.docker (
+	docker load -i .\xzyw_web_helper.docker
+)
+
+docker rm -f xyzw-web-local >nul 2>nul
+docker run -d --name xyzw-web-local ^
+	-p 127.0.0.1:8080:80 ^
+	--restart unless-stopped ^
+	xyzw-web:local
