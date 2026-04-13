@@ -7,6 +7,12 @@
   "scripts": {
     "testr": "node ./test/roleToken.js",
     "testd": "node ./test/token.js",
+    "scheduler:start": "node ./server/backgroundScheduler.js --tasks ./server/scheduler.tasks.json --log ./server/scheduler.log",
+    "scheduler:test": "node ./test/backgroundScheduler.integration.js",
+    "scheduler:test:meimei": "node ./test/backgroundScheduler.meimei.oneminute.test.js",
+    "docker:up": "npm run build && docker rm -f xyzw-web-local >/dev/null 2>&1 || true && docker rm -f xyzw-scheduler-local >/dev/null 2>&1 || true && docker compose up -d --build web scheduler",
+    "docker:down": "docker compose stop web scheduler",
+    "docker:ps": "docker compose ps",
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",

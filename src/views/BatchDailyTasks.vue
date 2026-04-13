@@ -1,5 +1,5 @@
 <template>
-  <div class="batch-daily-tasks">
+  <div v-if="!schedulerOnly" class="batch-daily-tasks">
     <div class="main-layout">
       <!-- Left Column -->
       <div class="left-column">
@@ -2877,6 +2877,13 @@ import {
 
 import { merchantConfig, goldItemsConfig } from "@/utils/dreamConstants";
 
+const props = defineProps({
+  schedulerOnly: {
+    type: Boolean,
+    default: false,
+  },
+});
+
 // Initialize token store, message service, and task runner
 const tokenStore = useTokenStore();
 const message = useMessage();
@@ -3564,6 +3571,33 @@ const cronNextRuns = ref([]);
 
 // Track executing tasks for UI loading state
 const executingTaskIds = ref([]);
+const schedulerApiBase = "http://127.0.0.1:8090/api/scheduler";
+
+const fetchSchedulerTasks = async () => {
+  const response = await fetch(`${schedulerApiBase}/tasks`);
+  if (!response.ok) {
+    throw new Error(`scheduler api http ${response.status}`);
+  }
+  const data = await response.json();
+  return Array.isArray(data?.tasks) ? data.tasks : [];
+};
+
+const pushSchedulerTasks = async (tasks) => {
+  const response = await fetch(`${schedulerApiBase}/tasks`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(tasks),
+  });
+
+  if (!response.ok) {
+    throw new Error(`scheduler api http ${response.status}`);
+  }
+
+  const data = await response.json();
+  return Array.isArray(data?.tasks) ? data.tasks : [];
+};
 
 // Manual execute task
 const manualExecuteTask = async (task) => {
@@ -3590,8 +3624,33 @@ const manualExecuteTask = async (task) => {
 };
 
 // Load scheduled tasks from localStorage
-const loadScheduledTasks = () => {
+const loadScheduledTasks = async () => {
   try {
+    try {
+      const remoteTasks = await fetchSchedulerTasks();
+      if (remoteTasks.length > 0) {
+        scheduledTasks.value = remoteTasks;
+        localStorage.setItem("scheduledTasks", JSON.stringify(remoteTasks));
+        return;
+      }
+
+      const localSaved = localStorage.getItem("scheduledTasks");
+      if (localSaved) {
+        const parsedLocal = JSON.parse(localSaved);
+        const localTasks = Array.isArray(parsedLocal) ? parsedLocal : [];
+        scheduledTasks.value = localTasks;
+        if (localTasks.length > 0) {
+          await pushSchedulerTasks(localTasks);
+        }
+        return;
+      }
+
+      scheduledTasks.value = [];
+      return;
+    } catch {
+      // scheduler API may be unavailable; fallback to localStorage
+    }
+
     const saved = localStorage.getItem("scheduledTasks");
 
     if (saved) {
@@ -3609,13 +3668,19 @@ const loadScheduledTasks = () => {
 };
 
 // Save scheduled tasks to localStorage
-const saveScheduledTasks = () => {
+const saveScheduledTasks = async () => {
   try {
     const dataToSave = JSON.stringify(scheduledTasks.value);
 
     localStorage.setItem("scheduledTasks", dataToSave);
-    // Verify save was successful
-    const saved = localStorage.getItem("scheduledTasks");
+
+    try {
+      const remoteTasks = await pushSchedulerTasks(scheduledTasks.value);
+      scheduledTasks.value = remoteTasks;
+      localStorage.setItem("scheduledTasks", JSON.stringify(remoteTasks));
+    } catch {
+      // keep local copy only when scheduler API is unavailable
+    }
   } catch (error) {
     console.error("Failed to save scheduled tasks:", error);
   }
@@ -4151,6 +4216,27 @@ const intervalId = ref(null);
 let lastTaskExecution = null;
 let healthCheckInterval = null;
 const pageLoadTime = Date.now();
+const schedulerLockKey = "__xyzwBatchSchedulerOwner";
+const schedulerInstanceId = `batch_scheduler_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+const hasSchedulerLock = ref(false);
+
+const acquireSchedulerLock = () => {
+  const owner = window[schedulerLockKey];
+  if (!owner || owner === schedulerInstanceId) {
+    window[schedulerLockKey] = schedulerInstanceId;
+    hasSchedulerLock.value = true;
+    return true;
+  }
+  hasSchedulerLock.value = false;
+  return false;
+};
+
+const releaseSchedulerLock = () => {
+  if (window[schedulerLockKey] === schedulerInstanceId) {
+    delete window[schedulerLockKey];
+  }
+  hasSchedulerLock.value = false;
+};
 
 // Health check for the scheduler
 const healthCheck = () => {
@@ -4303,10 +4389,13 @@ const handleTokenRefreshWaiting = (data) => {
 
 // Debug: Log initial state when component mounts
 onMounted(() => {
-  // Start the task scheduler after all functions are initialized
-  scheduleTaskExecution();
-  // Start countdown timer
-  startCountdown();
+  if (acquireSchedulerLock()) {
+    // Start the task scheduler after all functions are initialized
+    scheduleTaskExecution();
+    // Start countdown timer
+    startCountdown();
+  }
+
   loadTaskTemplates();
   // 监听Token刷新等待事件
   $emit.on("token:refresh:waiting", handleTokenRefreshWaiting);
@@ -4337,6 +4426,8 @@ onBeforeUnmount(() => {
     clearInterval(healthCheckInterval);
     healthCheckInterval = null;
   }
+
+  releaseSchedulerLock();
 });
 
 // Task scheduler - ensure it runs properly

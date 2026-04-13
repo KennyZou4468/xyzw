@@ -1,0 +1,37 @@
+[
+  {
+    "id": "demo_interval_log",
+    "name": "示例日志任务",
+    "enabled": true,
+    "runType": "interval",
+    "intervalSeconds": 30,
+    "action": "logMessage",
+    "payload": {
+      "message": "示例任务触发成功"
+    }
+  },
+  {
+    "id": "demo_meimei_onetime",
+    "name": "咩咩-示例批量任务",
+    "enabled": false,
+    "runType": "oneTime",
+    "runAt": "2026-01-01T00:00:00.000Z",
+    "action": "batchPlan",
+    "payload": {
+      "accountName": "咩咩",
+      "taskNames": ["startBatch", "batcharenafight", "batchOpenBox"]
+    }
+  },
+  {
+    "id": "demo_health_ping",
+    "name": "示例健康检查",
+    "enabled": false,
+    "runType": "interval",
+    "intervalSeconds": 60,
+    "action": "httpPing",
+    "payload": {
+      "url": "http://127.0.0.1:8080"
+    },
+    "timeoutMs": 8000
+  }
+]

@@ -8,3 +8,22 @@ services:
     image: xyzw-web:local
     ports:
       - "127.0.0.1:8080:80"
+
+  scheduler:
+    image: node:20-alpine
+    container_name: xyzw-scheduler-local
+    restart: unless-stopped
+    working_dir: /app
+    command:
+      - node
+      - server/backgroundScheduler.js
+      - --tasks
+      - server/scheduler.tasks.json
+      - --log
+      - server/scheduler.log
+      - --api-port
+      - "8090"
+    ports:
+      - "127.0.0.1:8090:8090"
+    volumes:
+      - ./:/app

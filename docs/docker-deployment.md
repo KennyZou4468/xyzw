@@ -36,8 +36,17 @@ Nginx 运行配置，关键点：
 
 - 构建上下文：项目根目录。
 - Dockerfile 路径：`docker/dockerfile`
-- 镜像名：`xyzw-web:local`
-- 端口映射：`127.0.0.1:8080:80`（仅本机访问）
+- `web` 镜像名：`xyzw-web:local`
+- `web` 端口映射：`127.0.0.1:8080:80`（仅本机访问）
+- `scheduler` 端口映射：`127.0.0.1:8090:8090`（任务同步 API）
+
+### 2.4 [docker/install.sh](docker/install.sh) / [docker/install.cmd](docker/install.cmd)
+
+固定脚本（推荐）：一条命令同时拉起网页和调度器。
+
+### 2.5 [server/scheduler.tasks.json](server/scheduler.tasks.json)
+
+后台调度器实际读取的任务文件。网页新增/编辑定时任务后会同步写入这个文件（通过 scheduler API）。
 
 ## 3. 本地部署流程（推荐）
 
@@ -55,18 +64,52 @@ curl -I http://127.0.0.1:8080
 
 ## 4. 本地部署流程（Compose）
 
+### 4.1 一条命令启动（推荐）
+
+macOS/Linux：
+
+```bash
+sh docker/install.sh
+```
+
+Windows：
+
+```bat
+docker\install.cmd
+```
+
+### 4.2 NPM 快捷命令
+
+```bash
+npm run docker:up
+npm run docker:ps
+```
+
+说明：`docker:up` 会先清理同名旧容器（`xyzw-web-local`、`xyzw-scheduler-local`），再启动最新服务，避免容器名冲突。
+
+### 4.3 手动 Compose（等价）
+
 ```bash
 npm run build
-docker compose up -d --build
+docker compose up -d --build web scheduler
 docker compose ps
 curl -I http://127.0.0.1:8080
+curl -s http://127.0.0.1:8090/api/scheduler/health
 ```
 
 停止并清理：
 
 ```bash
-docker compose down
+docker compose stop web scheduler
 ```
+
+网页地址：
+
+`http://127.0.0.1:8080`
+
+调度器健康检查：
+
+`http://127.0.0.1:8090/api/scheduler/health`
 
 ## 5. 服务器部署流程
 
@@ -164,6 +207,28 @@ docker build -f docker/dockerfile -t xyzw-web:local .
 ```
 
 ## 10. 常见问题
+
+### 10.0 关闭网页后任务不执行
+
+先检查 scheduler 容器和 API：
+
+```bash
+docker ps | grep xyzw-scheduler-local
+curl -s http://127.0.0.1:8090/api/scheduler/health
+```
+
+再检查任务是否真的同步到了后台：
+
+```bash
+curl -s http://127.0.0.1:8090/api/scheduler/tasks
+docker logs --tail=200 xyzw-scheduler-local
+```
+
+如果 scheduler 没有启动，执行：
+
+```bash
+npm run docker:up
+```
 
 ### 10.1 端口占用
 

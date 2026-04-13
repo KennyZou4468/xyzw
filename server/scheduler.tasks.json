@@ -1,0 +1,22 @@
+[
+  {
+    "id": "ui_sync_test_meimei",
+    "name": "UI同步测试-咩咩",
+    "enabled": true,
+    "runType": "oneTime",
+    "intervalSeconds": 60,
+    "runTime": null,
+    "cronExpression": null,
+    "runAt": "2026-04-13T01:12:45.392Z",
+    "action": "batchPlan",
+    "payload": {
+      "accountName": "咩咩",
+      "taskNames": [
+        "batcharenafight",
+        "batchOpenBox",
+        "ui_sync_marker"
+      ]
+    },
+    "timeoutMs": 10000
+  }
+]
