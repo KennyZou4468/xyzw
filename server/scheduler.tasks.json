@@ -1,22 +1,75 @@
 [
   {
-    "id": "ui_sync_test_meimei",
-    "name": "UI同步测试-咩咩",
-    "enabled": true,
-    "runType": "oneTime",
-    "intervalSeconds": 60,
-    "runTime": null,
+    "id": "task_1776056561717",
+    "name": "test",
+    "runType": "daily",
+    "runTime": "14:44",
     "cronExpression": null,
-    "runAt": "2026-04-13T01:12:45.392Z",
-    "action": "batchPlan",
+    "selectedTokens": [
+      "dfc9778057f08bd1c830bd8c0f6db98c",
+      "4aa96c8407004e3683153c5e8e4ba1e8",
+      "56b8203550443f7ec95b812fc36bc057",
+      "cb037498585610b35263577a40558345"
+    ],
+    "selectedTasks": [
+      "startBatch",
+      "claimHangUpRewards",
+      "resetBottles",
+      "batchAddHangUpTime",
+      "batchStudy",
+      "batchGenieSweep",
+      "climbTower",
+      "batchLegacyClaim"
+    ],
+    "enabled": true,
     "payload": {
-      "accountName": "咩咩",
+      "tokenCredentials": [
+        {
+          "id": "dfc9778057f08bd1c830bd8c0f6db98c",
+          "name": "咩咩-0-529938321",
+          "token": "{\"roleToken\":\"dxLlPlwqOjvhaIOp5Kpb2Kl//dP9trcBe4QOll/GbA7FOupbJpGx3lWTN1hFmXRszwdNnpz+lyfjzxiTBcxDBgLGhH28Z5+T7iaEkwc7hKdhN4IntjBDs4WMbwytrgp5N4SiBl8m3YbzLwUFe1tmEpuNJpZ6LfOINicAsNx7H/4=\",\"roleId\":349039073,\"sessId\":177604170677495,\"connId\":1776041706774,\"isRestore\":0}",
+          "wsUrl": null
+        },
+        {
+          "id": "4aa96c8407004e3683153c5e8e4ba1e8",
+          "name": "咩咩咩-1-597541905",
+          "token": "{\"roleToken\":\"sBAL4p+bgAOlUu7WhdGtOEXB8XHXUKH508MIvxjKwkTwMmLiBOCLeJ7OgRrb4rrTB5jNVrn80INa5uqLCsYCOAyiweOII/6f6+8eeFN6WDnSWOdMxFsC2cQNSAx2S2b/San68tuYA6/i/JKxkG2qAXOwPqWtD5leVtgotyh6RyY=\",\"roleId\":349039073,\"sessId\":177605606322147,\"connId\":1776056063229,\"isRestore\":0}",
+          "wsUrl": null
+        },
+        {
+          "id": "56b8203550443f7ec95b812fc36bc057",
+          "name": "咩咩-0-664382501",
+          "token": "{\"roleToken\":\"IX10HjVLUdljp0XJ/EmuUDwzMd4f6i7OOhNTuIAnkY59DlhCyq81nKDwW8Vfp+WX3LuCO5izlxJG3U0x0surb+xJ2Vj4CoWEPSPab7BPZ+fYFR1foZbaBSu4oKPjiAqOdyExiUo5XTLLDapERa6ekRI01FeTgIivYCskPZ1Dq4A=\",\"roleId\":349039073,\"sessId\":177605606404123,\"connId\":1776056064043,\"isRestore\":0}",
+          "wsUrl": null
+        },
+        {
+          "id": "cb037498585610b35263577a40558345",
+          "name": "咩咩咩-2-689898963",
+          "token": "{\"roleToken\":\"iMBaci+SZoBs0qelCg5aiLDJLmBWL8wAzPhabV5HS13cjzHuBU1gtXmcf5AvXNn8+bfvZUm57NGJPp39GwHnPwqmLGmOtM+Wo2zdVgyiS37sEJrIMbHgJBddhYgnlKUCkWrLTS9LzeWZPB+BIJt/4Zbc5EMoQtLYZDVtBSJVRcE=\",\"roleId\":349039073,\"sessId\":177605606506580,\"connId\":1776056065073,\"isRestore\":0}",
+          "wsUrl": null
+        }
+      ],
+      "accountName": "咩咩-0-529938321",
+      "selectedTokens": [
+        "dfc9778057f08bd1c830bd8c0f6db98c",
+        "4aa96c8407004e3683153c5e8e4ba1e8",
+        "56b8203550443f7ec95b812fc36bc057",
+        "cb037498585610b35263577a40558345"
+      ],
       "taskNames": [
-        "batcharenafight",
-        "batchOpenBox",
-        "ui_sync_marker"
+        "startBatch",
+        "claimHangUpRewards",
+        "resetBottles",
+        "batchAddHangUpTime",
+        "batchStudy",
+        "batchGenieSweep",
+        "climbTower",
+        "batchLegacyClaim"
       ]
     },
+    "action": "batchPlan",
+    "intervalSeconds": 60,
+    "runAt": null,
     "timeoutMs": 10000
   }
 ]

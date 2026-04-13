@@ -4,12 +4,15 @@ import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { matchesCronExpression, validateCronExpression } from "../src/utils/batch/cronUtils.js";
+import { availableTasks } from "../src/utils/batch/constants.js";
+import { executeBatchPlanInBackend, SUPPORTED_TASKS } from "./backendBatchExecutor.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const defaultTasksPath = path.resolve(__dirname, "scheduler.tasks.json");
 const defaultLogPath = path.resolve(__dirname, "scheduler.log");
+const defaultUiLogsPath = path.resolve(__dirname, "scheduler.ui.logs.json");
 
 const parseArgs = (argv) => {
   const args = {};
@@ -31,6 +34,7 @@ const parseArgs = (argv) => {
 const args = parseArgs(process.argv.slice(2));
 const tasksPath = path.resolve(String(args.tasks || defaultTasksPath));
 const logPath = path.resolve(String(args.log || defaultLogPath));
+const uiLogsPath = path.resolve(String(args["ui-logs"] || defaultUiLogsPath));
 const tickMs = Number(args["tick-ms"] || 1000);
 const apiPort = args["api-port"] !== undefined ? Number(args["api-port"]) : 0;
 const durationSeconds = args["duration-seconds"]
@@ -73,19 +77,48 @@ const normalizeTasks = (raw, options = {}) => {
   }
 
   const tasks = raw
-    .map((task, index) => ({
-      id: task.id || `task_${index + 1}`,
-      name: task.name || `task_${index + 1}`,
-      enabled: task.enabled !== false,
-      runType: task.runType || "interval",
-      intervalSeconds: Number(task.intervalSeconds || 60),
-      runTime: task.runTime || null,
-      cronExpression: task.cronExpression || null,
-      runAt: task.runAt || null,
-      action: task.action || "logMessage",
-      payload: task.payload || {},
-      timeoutMs: Number(task.timeoutMs || 10000),
-    }));
+    .map((task, index) => {
+      const normalized = {
+        ...task,
+        id: task.id || `task_${index + 1}`,
+        name: task.name || `task_${index + 1}`,
+        enabled: task.enabled !== false,
+        runType: task.runType || "interval",
+        intervalSeconds: Number(task.intervalSeconds || 60),
+        runTime: task.runTime || null,
+        cronExpression: task.cronExpression || null,
+        runAt: task.runAt || null,
+        action: task.action || "logMessage",
+        payload: task.payload || {},
+        timeoutMs: Number(task.timeoutMs || 10000),
+      };
+
+      if (!Array.isArray(normalized.selectedTokens)) {
+        normalized.selectedTokens = [];
+      }
+
+      if (!Array.isArray(normalized.selectedTasks)) {
+        normalized.selectedTasks = [];
+      }
+
+      if (
+        normalized.selectedTasks.length > 0 &&
+        (!task.action || task.action === "logMessage")
+      ) {
+        normalized.action = "batchPlan";
+        normalized.payload = {
+          ...normalized.payload,
+          taskNames: normalized.selectedTasks,
+          selectedTokens: normalized.selectedTokens,
+          accountName:
+            normalized.payload?.accountName ||
+            normalized.name ||
+            normalized.id,
+        };
+      }
+
+      return normalized;
+    });
 
   for (const task of tasks) {
     if (task.runType === "interval") {
@@ -156,13 +189,146 @@ const writeStoredTasks = (tasks) => {
   return normalized;
 };
 
+const migrateStoredTasks = () => {
+  const rawTasks = readStoredTasks();
+  let changedCount = 0;
+  const missingCredentials = [];
+
+  const migrated = rawTasks.map((task) => {
+    let changed = false;
+    const next = {
+      ...task,
+      selectedTasks: Array.isArray(task.selectedTasks) ? task.selectedTasks : [],
+      selectedTokens: Array.isArray(task.selectedTokens) ? task.selectedTokens : [],
+      payload: { ...(task.payload || {}) },
+    };
+
+    if (next.selectedTasks.length > 0 && (next.action === "logMessage" || !next.action)) {
+      next.action = "batchPlan";
+      changed = true;
+    }
+
+    if (next.action === "batchPlan") {
+      if (!Array.isArray(next.payload.taskNames) || next.payload.taskNames.length === 0) {
+        next.payload.taskNames = next.selectedTasks;
+        changed = true;
+      }
+
+      if (!Array.isArray(next.payload.selectedTokens) || next.payload.selectedTokens.length === 0) {
+        next.payload.selectedTokens = next.selectedTokens;
+        changed = true;
+      }
+
+      if (!next.payload.accountName) {
+        next.payload.accountName = next.name || next.id || "unknown";
+        changed = true;
+      }
+
+      if (!Array.isArray(next.payload.tokenCredentials) || next.payload.tokenCredentials.length === 0) {
+        missingCredentials.push(next.id);
+      }
+    }
+
+    if (changed) {
+      changedCount += 1;
+    }
+
+    return next;
+  });
+
+  writeStoredTasks(migrated);
+  return {
+    tasks: migrated,
+    changedCount,
+    missingCredentials,
+  };
+};
+
+const getCapabilities = () => {
+  const frontendTaskNames = Array.isArray(availableTasks)
+    ? availableTasks.map((item) => item?.value).filter(Boolean)
+    : [];
+  const supported = new Set(SUPPORTED_TASKS);
+
+  const taskSupport = frontendTaskNames.map((taskName) => ({
+    taskName,
+    supported: supported.has(taskName),
+  }));
+
+  return {
+    frontendTaskCount: frontendTaskNames.length,
+    backendSupportedCount: SUPPORTED_TASKS.length,
+    taskSupport,
+    supportedTaskNames: SUPPORTED_TASKS,
+  };
+};
+
 const sendJson = (res, statusCode, data) => {
   res.statusCode = statusCode;
   res.setHeader("Content-Type", "application/json; charset=utf-8");
   res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "GET,PUT,OPTIONS");
+  res.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
   res.end(JSON.stringify(data));
+};
+
+const readSchedulerLogLines = (tail = 200) => {
+  if (!fs.existsSync(logPath)) {
+    return [];
+  }
+
+  const text = fs.readFileSync(logPath, "utf8");
+  const lines = text
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  const picked = lines.slice(-Math.max(1, tail));
+  return picked.map((line) => {
+    const match = line.match(/^(\S+)\s+\[(\w+)\]\s+(.*)$/);
+    if (!match) {
+      return {
+        time: new Date().toLocaleTimeString(),
+        type: "info",
+        message: line,
+      };
+    }
+
+    const [, isoTime, level, message] = match;
+    const typeMap = {
+      ERROR: "error",
+      WARN: "warning",
+      TASK: "success",
+      INFO: "info",
+    };
+
+    return {
+      time: new Date(isoTime).toLocaleTimeString(),
+      type: typeMap[level] || "info",
+      message,
+    };
+  });
+};
+
+const readUiLogs = () => {
+  if (!fs.existsSync(uiLogsPath)) {
+    return [];
+  }
+
+  const text = fs.readFileSync(uiLogsPath, "utf8");
+  if (!text.trim()) {
+    return [];
+  }
+
+  const parsed = JSON.parse(text);
+  return Array.isArray(parsed) ? parsed : [];
+};
+
+const writeUiLogs = (items) => {
+  const logs = Array.isArray(items) ? items : [];
+  ensureParentDir(uiLogsPath);
+  fs.writeFileSync(uiLogsPath, JSON.stringify(logs, null, 2), "utf8");
+  return logs;
 };
 
 const startApiServer = () => {
@@ -188,6 +354,18 @@ const startApiServer = () => {
       return;
     }
 
+    if (req.method === "GET" && url.pathname === "/api/scheduler/capabilities") {
+      try {
+        sendJson(res, 200, {
+          ok: true,
+          capabilities: getCapabilities(),
+        });
+      } catch (error) {
+        sendJson(res, 500, { ok: false, error: error.message });
+      }
+      return;
+    }
+
     if (req.method === "GET" && url.pathname === "/api/scheduler/tasks") {
       try {
         const tasks = readStoredTasks();
@@ -195,6 +373,44 @@ const startApiServer = () => {
       } catch (error) {
         sendJson(res, 500, { ok: false, error: error.message });
       }
+      return;
+    }
+
+    if (req.method === "GET" && url.pathname === "/api/scheduler/logs") {
+      try {
+        const tail = Number(url.searchParams.get("tail") || 200);
+        const logs = readSchedulerLogLines(tail);
+        sendJson(res, 200, { ok: true, logs });
+      } catch (error) {
+        sendJson(res, 500, { ok: false, error: error.message });
+      }
+      return;
+    }
+
+    if (req.method === "GET" && url.pathname === "/api/scheduler/ui-logs") {
+      try {
+        const logs = readUiLogs();
+        sendJson(res, 200, { ok: true, logs });
+      } catch (error) {
+        sendJson(res, 500, { ok: false, error: error.message });
+      }
+      return;
+    }
+
+    if (req.method === "PUT" && url.pathname === "/api/scheduler/ui-logs") {
+      let body = "";
+      req.on("data", (chunk) => {
+        body += chunk.toString();
+      });
+      req.on("end", () => {
+        try {
+          const parsed = JSON.parse(body || "[]");
+          const logs = writeUiLogs(parsed);
+          sendJson(res, 200, { ok: true, logsCount: logs.length });
+        } catch (error) {
+          sendJson(res, 400, { ok: false, error: error.message });
+        }
+      });
       return;
     }
 
@@ -213,6 +429,25 @@ const startApiServer = () => {
           sendJson(res, 400, { ok: false, error: error.message });
         }
       });
+      return;
+    }
+
+    if (req.method === "POST" && url.pathname === "/api/scheduler/tasks/migrate") {
+      try {
+        const result = migrateStoredTasks();
+        writeLog(
+          "INFO",
+          `tasks migrated via API, changed=${result.changedCount}, missingCredentials=${result.missingCredentials.length}`,
+        );
+        sendJson(res, 200, {
+          ok: true,
+          changedCount: result.changedCount,
+          missingCredentials: result.missingCredentials,
+          tasks: result.tasks,
+        });
+      } catch (error) {
+        sendJson(res, 500, { ok: false, error: error.message });
+      }
       return;
     }
 
@@ -252,6 +487,10 @@ const shouldRunTask = (task, now) => {
   const state = runtimeState.get(task.id) || {};
   const nowMs = now.getTime();
 
+  if (state.running) {
+    return false;
+  }
+
   if (task.runType === "interval") {
     const nextRunAt = state.nextRunAt ?? nowMs;
     return nowMs >= nextRunAt;
@@ -284,7 +523,8 @@ const shouldRunTask = (task, now) => {
 
 const executeTask = async (task) => {
   if (task.action === "logMessage") {
-    const message = task.payload?.message || `${task.name} fired`;
+    const message =
+      task.payload?.message || `${task.name} triggered (logMessage only)`;
     writeLog("TASK", `[${task.id}] ${message}`);
     return;
   }
@@ -313,9 +553,17 @@ const executeTask = async (task) => {
     const taskNames = Array.isArray(task.payload?.taskNames)
       ? task.payload.taskNames
       : [];
+    writeLog("TASK", `[${task.id}] batchPlan start account=${accountName} batchTasks=${taskNames.join(",") || "(none)"}`);
+
+    const result = await executeBatchPlanInBackend(task, (message, level = "info") => {
+      const mappedLevel =
+        level === "error" ? "ERROR" : level === "success" ? "TASK" : "INFO";
+      writeLog(mappedLevel, `[${task.id}] ${message}`);
+    });
+
     writeLog(
       "TASK",
-      `[${task.id}] account=${accountName} batchTasks=${taskNames.join(",") || "(none)"}`,
+      `[${task.id}] batchPlan done success=${result.success} failed=${result.failed}`,
     );
     return;
   }
@@ -337,12 +585,20 @@ const tick = async () => {
   for (const task of tasks) {
     if (!shouldRunTask(task, now)) continue;
 
+    const state = runtimeState.get(task.id) || {};
+    state.running = true;
+    runtimeState.set(task.id, state);
+
     try {
       await executeTask(task);
       markExecuted(task, now.getTime());
     } catch (error) {
       writeLog("ERROR", `[${task.id}] execution failed: ${error.message}`);
       markExecuted(task, now.getTime());
+    } finally {
+      const latest = runtimeState.get(task.id) || {};
+      latest.running = false;
+      runtimeState.set(task.id, latest);
     }
   }
 };

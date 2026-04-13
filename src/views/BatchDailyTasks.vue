@@ -664,17 +664,31 @@
                 </span>
               </div>
               <div class="log-header-controls">
-                <n-checkbox v-model:checked="autoScrollLog" size="small">
-                  自动滚动
-                </n-checkbox>
-                <n-checkbox v-model:checked="filterErrorsOnly" size="small">
-                  只看错误
-                </n-checkbox>
-                <n-tag v-if="errorCount > 0" type="error" size="small">
-                  {{ errorCount }} 个错误
-                </n-tag>
-                <n-button size="small" @click="clearLogs"> 清空日志 </n-button>
-                <n-button size="small" @click="copyLogs"> 复制日志 </n-button>
+                <div class="log-header-left">
+                  <n-checkbox v-model:checked="autoScrollLog" size="small">
+                    自动滚动
+                  </n-checkbox>
+                  <n-checkbox v-model:checked="filterErrorsOnly" size="small">
+                    只看错误
+                  </n-checkbox>
+                  <n-tag v-if="errorCount > 0" type="error" size="small">
+                    {{ errorCount }} 个错误
+                  </n-tag>
+                </div>
+                <div class="log-header-right">
+                  <span class="log-sync-status" :class="`is-${logSyncState}`">
+                    {{ logSyncStatusText }}
+                  </span>
+                  <n-button
+                    size="small"
+                    @click="refreshLogsFromScheduler"
+                    :loading="isRefreshingLogs"
+                  >
+                    刷新后端日志
+                  </n-button>
+                  <n-button size="small" @click="clearLogs"> 清空日志 </n-button>
+                  <n-button size="small" @click="copyLogs"> 复制日志 </n-button>
+                </div>
               </div>
             </div>
           </template>
@@ -1591,15 +1605,11 @@
           </div>
           <div style="margin-bottom: 4px">
             <span style="color: #6b7280">运行类型：</span>
-            <span>{{
-              task.runType === "daily" ? "每天固定时间" : "Cron表达式"
-            }}</span>
+            <span>{{ getTaskRunTypeLabel(task) }}</span>
           </div>
           <div style="margin-bottom: 4px">
             <span style="color: #6b7280">运行时间：</span>
-            <span>{{
-              task.runType === "daily" ? task.runTime : task.cronExpression
-            }}</span>
+            <span>{{ getTaskRunValue(task) }}</span>
           </div>
           <div style="margin-bottom: 4px">
             <span style="color: #6b7280">下次执行：</span>
@@ -1620,11 +1630,11 @@
           </div>
           <div style="margin-bottom: 4px">
             <span style="color: #6b7280">选中账号：</span>
-            <span>{{ task.selectedTokens.length }} 个</span>
+            <span>{{ getTaskTokenCount(task) }} 个</span>
           </div>
           <div style="margin-bottom: 8px">
             <span style="color: #6b7280">选中任务：</span>
-            <span>{{ task.selectedTasks.length }} 个</span>
+            <span>{{ getTaskSelectedCount(task) }} 个</span>
           </div>
           <div style="display: flex; gap: 8px">
             <n-button size="tiny" @click="editTask(task)"> 编辑 </n-button>
@@ -3571,7 +3581,16 @@ const cronNextRuns = ref([]);
 
 // Track executing tasks for UI loading state
 const executingTaskIds = ref([]);
-const schedulerApiBase = "http://127.0.0.1:8090/api/scheduler";
+const schedulerApiBase = "/api/scheduler";
+const schedulerUiLogsApi = `${schedulerApiBase}/ui-logs`;
+const isRefreshingLogs = ref(false);
+const logSyncState = ref("idle");
+const logSyncStatusText = ref("尚未同步");
+
+const setLogSyncStatus = (state, text) => {
+  logSyncState.value = state;
+  logSyncStatusText.value = text;
+};
 
 const fetchSchedulerTasks = async () => {
   const response = await fetch(`${schedulerApiBase}/tasks`);
@@ -3582,13 +3601,168 @@ const fetchSchedulerTasks = async () => {
   return Array.isArray(data?.tasks) ? data.tasks : [];
 };
 
+const ensureArray = (value) => {
+  if (!Array.isArray(value)) return [];
+  return value.filter((item) => item !== undefined && item !== null);
+};
+
+const normalizeScheduledTask = (task) => {
+  const normalized = { ...task };
+
+  normalized.selectedTokens = ensureArray(
+    normalized.selectedTokens ?? normalized.payload?.selectedTokens,
+  );
+  normalized.selectedTasks = ensureArray(
+    normalized.selectedTasks ?? normalized.payload?.taskNames,
+  );
+
+  if (normalized.runType === "daily") {
+    const validRunTime =
+      typeof normalized.runTime === "string" &&
+      /^\d{2}:\d{2}$/.test(normalized.runTime);
+    if (!validRunTime) {
+      normalized.runTime = "00:00";
+    }
+  }
+
+  if (normalized.runType === "cron") {
+    if (typeof normalized.cronExpression !== "string") {
+      normalized.cronExpression = "";
+    }
+  }
+
+  return normalized;
+};
+
+const normalizeScheduledTasks = (items) => {
+  return ensureArray(items).map((item) => normalizeScheduledTask(item));
+};
+
+const getTaskRunTypeLabel = (task) => {
+  if (task.runType === "daily") return "每天固定时间";
+  if (task.runType === "cron") return "Cron表达式";
+  if (task.runType === "interval") return "间隔执行";
+  if (task.runType === "oneTime") return "单次执行";
+  return "未知类型";
+};
+
+const getTaskRunValue = (task) => {
+  if (task.runType === "daily") return task.runTime || "--";
+  if (task.runType === "cron") return task.cronExpression || "--";
+  if (task.runType === "interval") {
+    return `${Number(task.intervalSeconds || 0)} 秒`;
+  }
+  if (task.runType === "oneTime") return task.runAt || "--";
+  return "--";
+};
+
+const getTaskTokenCount = (task) => ensureArray(task?.selectedTokens).length;
+const getTaskSelectedCount = (task) => ensureArray(task?.selectedTasks).length;
+
+const toSchedulerApiTask = (task) => {
+  const selectedTokens = ensureArray(task?.selectedTokens);
+  const selectedTasks = ensureArray(task?.selectedTasks);
+  const tokenCredentials = selectedTokens
+    .map((tokenId) => {
+      const token = tokenStore.gameTokens.find((item) => item.id === tokenId);
+      if (!token) return null;
+      return {
+        id: token.id,
+        name: token.name,
+        token: token.token,
+        wsUrl: token.wsUrl || null,
+      };
+    })
+    .filter(Boolean);
+
+  if (selectedTasks.length === 0) {
+    return {
+      ...task,
+      selectedTokens,
+      selectedTasks,
+    };
+  }
+
+  const firstTokenName = selectedTokens.length
+    ? tokenStore.gameTokens.find((t) => t.id === selectedTokens[0])?.name ||
+      selectedTokens[0]
+    : "unknown";
+
+  return {
+    ...task,
+    selectedTokens,
+    selectedTasks,
+    action: "batchPlan",
+    payload: {
+      ...(task?.payload || {}),
+      accountName: firstTokenName,
+      selectedTokens,
+      tokenCredentials,
+      taskNames: selectedTasks,
+    },
+  };
+};
+
+const toSchedulerApiTasks = (tasks) => {
+  return ensureArray(tasks).map((task) => toSchedulerApiTask(task));
+};
+
+const enrichTaskTokenCredentials = (task) => {
+  const selectedTokens = ensureArray(task?.selectedTokens);
+  const payload = task?.payload || {};
+  const existing = ensureArray(payload.tokenCredentials);
+
+  if (existing.length > 0 || selectedTokens.length === 0) {
+    return { task, changed: false };
+  }
+
+  const tokenCredentials = selectedTokens
+    .map((tokenId) => {
+      const token = tokenStore.gameTokens.find((item) => item.id === tokenId);
+      if (!token) return null;
+      return {
+        id: token.id,
+        name: token.name,
+        token: token.token,
+        wsUrl: token.wsUrl || null,
+      };
+    })
+    .filter(Boolean);
+
+  if (tokenCredentials.length === 0) {
+    return { task, changed: false };
+  }
+
+  return {
+    changed: true,
+    task: {
+      ...task,
+      payload: {
+        ...payload,
+        tokenCredentials,
+      },
+    },
+  };
+};
+
+const enrichTasksTokenCredentials = (tasks) => {
+  let changed = false;
+  const enriched = ensureArray(tasks).map((task) => {
+    const result = enrichTaskTokenCredentials(task);
+    if (result.changed) changed = true;
+    return result.task;
+  });
+  return { tasks: enriched, changed };
+};
+
 const pushSchedulerTasks = async (tasks) => {
+  const apiTasks = toSchedulerApiTasks(tasks);
   const response = await fetch(`${schedulerApiBase}/tasks`, {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify(tasks),
+    body: JSON.stringify(apiTasks),
   });
 
   if (!response.ok) {
@@ -3629,18 +3803,27 @@ const loadScheduledTasks = async () => {
     try {
       const remoteTasks = await fetchSchedulerTasks();
       if (remoteTasks.length > 0) {
-        scheduledTasks.value = remoteTasks;
-        localStorage.setItem("scheduledTasks", JSON.stringify(remoteTasks));
+        const normalizedRemoteTasks = normalizeScheduledTasks(remoteTasks);
+        const enrichedRemoteTasks = enrichTasksTokenCredentials(normalizedRemoteTasks);
+        scheduledTasks.value = enrichedRemoteTasks.tasks;
+        localStorage.setItem(
+          "scheduledTasks",
+          JSON.stringify(enrichedRemoteTasks.tasks),
+        );
+        if (enrichedRemoteTasks.changed) {
+          await pushSchedulerTasks(enrichedRemoteTasks.tasks);
+        }
         return;
       }
 
       const localSaved = localStorage.getItem("scheduledTasks");
       if (localSaved) {
         const parsedLocal = JSON.parse(localSaved);
-        const localTasks = Array.isArray(parsedLocal) ? parsedLocal : [];
-        scheduledTasks.value = localTasks;
+        const localTasks = normalizeScheduledTasks(parsedLocal);
+        const enrichedLocalTasks = enrichTasksTokenCredentials(localTasks);
+        scheduledTasks.value = enrichedLocalTasks.tasks;
         if (localTasks.length > 0) {
-          await pushSchedulerTasks(localTasks);
+          await pushSchedulerTasks(enrichedLocalTasks.tasks);
         }
         return;
       }
@@ -3657,7 +3840,7 @@ const loadScheduledTasks = async () => {
       const parsed = JSON.parse(saved);
 
       // Ensure we have an array
-      scheduledTasks.value = Array.isArray(parsed) ? parsed : [];
+      scheduledTasks.value = normalizeScheduledTasks(parsed);
     } else {
       scheduledTasks.value = [];
     }
@@ -3670,14 +3853,18 @@ const loadScheduledTasks = async () => {
 // Save scheduled tasks to localStorage
 const saveScheduledTasks = async () => {
   try {
+    scheduledTasks.value = normalizeScheduledTasks(scheduledTasks.value);
+    const enriched = enrichTasksTokenCredentials(scheduledTasks.value);
+    scheduledTasks.value = enriched.tasks;
     const dataToSave = JSON.stringify(scheduledTasks.value);
 
     localStorage.setItem("scheduledTasks", dataToSave);
 
     try {
       const remoteTasks = await pushSchedulerTasks(scheduledTasks.value);
-      scheduledTasks.value = remoteTasks;
-      localStorage.setItem("scheduledTasks", JSON.stringify(remoteTasks));
+      const normalizedRemoteTasks = normalizeScheduledTasks(remoteTasks);
+      scheduledTasks.value = normalizedRemoteTasks;
+      localStorage.setItem("scheduledTasks", JSON.stringify(normalizedRemoteTasks));
     } catch {
       // keep local copy only when scheduler API is unavailable
     }
@@ -3705,7 +3892,7 @@ const openTaskModal = () => {
 // Edit existing task
 const editTask = (task) => {
   editingTask.value = task;
-  const taskData = { ...task };
+  const taskData = normalizeScheduledTask(task);
   if (
     task.runType === "daily" &&
     task.runTime &&
@@ -4116,6 +4303,24 @@ const updateCountdowns = () => {
   const now = Date.now();
 
   scheduledTasks.value.forEach((task) => {
+    if (!["daily", "cron"].includes(task.runType)) {
+      delete taskCountdowns.value[task.id];
+      delete nextExecutionTimes.value[task.id];
+      return;
+    }
+
+    if (task.runType === "daily" && !/^\d{2}:\d{2}$/.test(task.runTime || "")) {
+      delete taskCountdowns.value[task.id];
+      delete nextExecutionTimes.value[task.id];
+      return;
+    }
+
+    if (task.runType === "cron" && !String(task.cronExpression || "").trim()) {
+      delete taskCountdowns.value[task.id];
+      delete nextExecutionTimes.value[task.id];
+      return;
+    }
+
     if (!task.enabled) {
       // Clear countdown for disabled tasks
       delete taskCountdowns.value[task.id];
@@ -4388,7 +4593,13 @@ const handleTokenRefreshWaiting = (data) => {
 };
 
 // Debug: Log initial state when component mounts
-onMounted(() => {
+onMounted(async () => {
+  const loaded = await loadPersistedLogsFromScheduler();
+  if (!loaded) {
+    loadPersistedLogs();
+  }
+  await loadSchedulerLogs();
+
   if (acquireSchedulerLock()) {
     // Start the task scheduler after all functions are initialized
     scheduleTaskExecution();
@@ -4454,11 +4665,22 @@ const scheduleTaskExecution = () => {
 
 // Verify task dependencies - 只验证基础依赖，WebSocket连接由具体任务函数处理
 const verifyTaskDependencies = async (task) => {
+  const selectedTaskNames = ensureArray(task?.selectedTasks);
+
   addLog({
     time: new Date().toLocaleTimeString(),
     message: `=== 开始验证定时任务 ${task.name} 的依赖 ===`,
     type: "info",
   });
+
+  if (selectedTaskNames.length === 0) {
+    addLog({
+      time: new Date().toLocaleTimeString(),
+      message: "❌ 定时任务未配置可执行任务（selectedTasks为空）",
+      type: "error",
+    });
+    return false;
+  }
 
   // Verify localStorage is available
   try {
@@ -4489,7 +4711,7 @@ const verifyTaskDependencies = async (task) => {
   }
 
   // Verify task functions exist
-  for (const taskName of task.selectedTasks) {
+  for (const taskName of selectedTaskNames) {
     const taskFunction = eval(taskName);
     if (typeof taskFunction !== "function") {
       addLog({
@@ -4529,11 +4751,22 @@ const verifyTaskDependencies = async (task) => {
 
 // Execute a scheduled task with dependency verification
 const executeScheduledTask = async (task) => {
+  const selectedTaskNames = ensureArray(task?.selectedTasks);
+
   addLog({
     time: new Date().toLocaleTimeString(),
     message: `=== 开始执行定时任务: ${task.name} ===`,
     type: "info",
   });
+
+  if (selectedTaskNames.length === 0) {
+    addLog({
+      time: new Date().toLocaleTimeString(),
+      message: `=== 定时任务执行失败: ${task.name} 未配置 selectedTasks ===`,
+      type: "error",
+    });
+    return;
+  }
 
   try {
     // Verify dependencies before executing task
@@ -4581,7 +4814,7 @@ const executeScheduledTask = async (task) => {
     selectedTokens.value = [...availableTokens];
 
     // Execute selected tasks in parallel
-    const taskPromises = task.selectedTasks.map(async (taskName) => {
+    const taskPromises = selectedTaskNames.map(async (taskName) => {
       if (shouldStop.value) return;
 
       if (
@@ -5327,6 +5560,7 @@ const saveTaskTemplate = () => {
 const currentRunningTokenId = ref(null);
 const currentProgress = ref(0);
 const logs = ref([]);
+const batchLogStorageKey = "batchDailyTaskLogs";
 const logContainer = ref(null);
 const autoScrollLog = ref(true);
 const filterErrorsOnly = ref(false);
@@ -5549,6 +5783,129 @@ const getGroupTokenList = (groupId) => {
   return tokens.value.filter((t) => tokenIds.includes(t.id));
 };
 
+const persistLogs = () => {
+  try {
+    localStorage.setItem(batchLogStorageKey, JSON.stringify(logs.value));
+  } catch (error) {
+    console.warn("Failed to persist logs:", error);
+  }
+
+  setLogSyncStatus("syncing", "同步中...");
+
+  fetch(schedulerUiLogsApi, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(logs.value),
+  })
+    .then((response) => {
+      if (!response.ok) {
+        throw new Error(`scheduler ui-log http ${response.status}`);
+      }
+      setLogSyncStatus(
+        "success",
+        `已同步 ${new Date().toLocaleTimeString("zh-CN", { hour12: false })}`,
+      );
+    })
+    .catch(() => {
+      setLogSyncStatus("error", "后端同步失败(仅本地)");
+      // scheduler API 不可达时保持本地日志即可
+    });
+};
+
+const refreshLogsFromScheduler = async () => {
+  isRefreshingLogs.value = true;
+  setLogSyncStatus("syncing", "正在刷新后端日志...");
+
+  try {
+    const loaded = await loadPersistedLogsFromScheduler();
+    await loadSchedulerLogs();
+
+    if (loaded) {
+      message.success("已从后端刷新日志");
+    } else {
+      message.info("后端暂无历史日志，已保留当前日志");
+    }
+  } finally {
+    isRefreshingLogs.value = false;
+  }
+};
+
+const normalizeLogs = (items) => {
+  const maxLogEntries = batchSettings.maxLogEntries || 1000;
+  return items.slice(-maxLogEntries);
+};
+
+const mergeLogs = (baseLogs, extraLogs) => {
+  const seen = new Set();
+  const merged = [];
+
+  [...baseLogs, ...extraLogs].forEach((item) => {
+    const key = `${item.time}|${item.type}|${item.message}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+    merged.push(item);
+  });
+
+  return normalizeLogs(merged);
+};
+
+const loadSchedulerLogs = async () => {
+  try {
+    const response = await fetch(`${schedulerApiBase}/logs?tail=500`);
+    if (!response.ok) return;
+
+    const data = await response.json();
+    const remoteLogs = Array.isArray(data?.logs) ? data.logs : [];
+    if (remoteLogs.length === 0) return;
+
+    logs.value = mergeLogs(logs.value, remoteLogs);
+    persistLogs();
+  } catch {
+    // scheduler API not available, ignore
+  }
+};
+
+const loadPersistedLogsFromScheduler = async () => {
+  try {
+    const response = await fetch(schedulerUiLogsApi);
+    if (!response.ok) return false;
+
+    const data = await response.json();
+    const remoteLogs = Array.isArray(data?.logs) ? data.logs : [];
+    logs.value = normalizeLogs(remoteLogs);
+    localStorage.setItem(batchLogStorageKey, JSON.stringify(logs.value));
+    if (remoteLogs.length > 0) {
+      setLogSyncStatus(
+        "success",
+        `已恢复 ${new Date().toLocaleTimeString("zh-CN", { hour12: false })}`,
+      );
+    }
+    return remoteLogs.length > 0;
+  } catch {
+    setLogSyncStatus("error", "后端日志读取失败");
+    return false;
+  }
+};
+
+const loadPersistedLogs = () => {
+  try {
+    const raw = localStorage.getItem(batchLogStorageKey);
+    if (!raw) {
+      logs.value = [];
+      return;
+    }
+
+    const parsed = JSON.parse(raw);
+    logs.value = normalizeLogs(Array.isArray(parsed) ? parsed : []);
+    persistLogs();
+  } catch (error) {
+    console.warn("Failed to load persisted logs:", error);
+    logs.value = [];
+  }
+};
+
 // 注: pickArenaTargetId, FISH_TARGET, ARENA_TARGET, getTodayStartSec, isTodayAvailable, calculateMonthProgress 已从 @/utils/batch 导入
 
 const addLog = (log) => {
@@ -5560,6 +5917,8 @@ const addLog = (log) => {
   if (logs.value.length > maxLogEntries) {
     logs.value = logs.value.slice(-maxLogEntries);
   }
+
+  persistLogs();
 
   // 尝试DOM操作，但不依赖nextTick确保日志显示
   // 在后台运行时，浏览器可能会限制DOM操作
@@ -5618,6 +5977,7 @@ const copyLogs = () => {
 
 const clearLogs = () => {
   logs.value = [];
+  persistLogs();
   message.success("日志已清空");
 };
 
@@ -6033,10 +6393,10 @@ const stopBatch = () => {
 
 .log-header-controls {
   display: flex;
-  align-items: center;
-  gap: 12px;
-  justify-content: flex-end;
-  flex-wrap: nowrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
 /* Cron Parser Styles */
@@ -6092,10 +6452,34 @@ const stopBatch = () => {
   overflow: hidden;
 }
 
-.log-header-controls {
+.log-header-left,
+.log-header-right {
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-wrap: wrap;
+}
+
+.log-header-right {
+  justify-content: flex-end;
+  margin-left: auto;
+}
+
+.log-sync-status {
+  font-size: 12px;
+  color: #666;
+}
+
+.log-sync-status.is-success {
+  color: #18a058;
+}
+
+.log-sync-status.is-error {
+  color: #d03050;
+}
+
+.log-sync-status.is-syncing {
+  color: #2080f0;
 }
 
 .log-container {
@@ -6277,6 +6661,11 @@ const stopBatch = () => {
     flex-direction: column;
     align-items: flex-start;
     gap: 4px;
+  }
+
+  .log-header-right {
+    margin-left: 0;
+    justify-content: flex-start;
   }
 
   /* 批量功法残卷赠送样式 */

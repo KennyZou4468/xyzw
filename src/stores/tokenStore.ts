@@ -955,6 +955,61 @@ export const useTokenStore = defineStore("tokens", () => {
     }
   };
 
+  const waitForConnectedStatus = async (
+    tokenId: string,
+    timeoutMs = 10000,
+  ) => {
+    const start = Date.now();
+    while (Date.now() - start < timeoutMs) {
+      const status = wsConnections.value[tokenId]?.status;
+      if (status === "connected") {
+        return true;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 200));
+    }
+    return false;
+  };
+
+  const ensureConnectionForSend = async (
+    tokenId: string,
+    timeoutMs = 10000,
+  ) => {
+    const currentStatus = wsConnections.value[tokenId]?.status;
+    if (currentStatus === "connected") {
+      return true;
+    }
+
+    if (currentStatus === "connecting") {
+      return waitForConnectedStatus(tokenId, timeoutMs);
+    }
+
+    const token = gameTokens.value.find((item) => item.id === tokenId);
+    if (!token) {
+      wsLogger.error(`无法重连，Token不存在 [${tokenId}]`);
+      return false;
+    }
+
+    try {
+      await createWebSocketConnection(tokenId, token.token, token.wsUrl);
+    } catch (error) {
+      wsLogger.error(`重连失败 [${tokenId}]`, error);
+      return false;
+    }
+
+    return waitForConnectedStatus(tokenId, timeoutMs);
+  };
+
+  const shouldRetryAfterReconnect = (error: any) => {
+    const message = String(error?.message || "").toLowerCase();
+    return (
+      message.includes("websocket未连接") ||
+      message.includes("websocket 未连接") ||
+      message.includes("websocket not connected") ||
+      message.includes("websocket closed") ||
+      message.includes("连接已关闭")
+    );
+  };
+
   // Promise版发送消息
   const sendMessageWithPromise = async (
     tokenId: string,
@@ -962,49 +1017,64 @@ export const useTokenStore = defineStore("tokens", () => {
     params = {},
     timeout = 5000,
   ) => {
-    const connection = wsConnections.value[tokenId];
-    if (!connection || connection.status !== "connected") {
-      return Promise.reject(new Error(`WebSocket未连接 [${tokenId}]`));
-    }
-
-    const client = connection.client;
-    if (!client) {
-      return Promise.reject(new Error(`WebSocket客户端不存在 [${tokenId}]`));
-    }
-
-    // 为战斗相关命令自动注入 battleVersion
-    const battleCommands = [
-      "fight_startareaarena",
-      "fight_startpvp",
-      "fight_starttower",
-      "fight_startboss",
-      "fight_startlegionboss",
-      "fight_startdungeon",
-    ];
-    if (battleCommands.includes(cmd)) {
-      const battleVersion = gameData.value.battleVersion;
-      params = { battleVersion, ...params };
-      wsLogger.info(
-        `⚔️ [战斗命令] 注入 battleVersion: ${battleVersion} [${cmd}]`,
-      );
-    }
-
-    try {
-      const result = await client.sendWithPromise(cmd, params, timeout);
-
-      // 特殊日志：fight_starttower 响应
-      if (cmd === "fight_starttower") {
-        wsLogger.info(`🗼 [咸将塔] 收到爬塔响应 [${tokenId}]:`, result);
+    const performSend = async (allowReconnectRetry: boolean) => {
+      const connected = await ensureConnectionForSend(tokenId, Math.max(timeout, 8000));
+      if (!connected) {
+        throw new Error(`WebSocket未连接 [${tokenId}]`);
       }
 
-      return result;
-    } catch (error) {
-      // 特殊日志：fight_starttower 错误
-      if (cmd === "fight_starttower") {
-        wsLogger.error(`🗼 [咸将塔] 爬塔请求失败 [${tokenId}]:`, error.message);
+      const connection = wsConnections.value[tokenId];
+      if (!connection || connection.status !== "connected") {
+        throw new Error(`WebSocket未连接 [${tokenId}]`);
       }
-      return Promise.reject(error);
-    }
+
+      const client = connection.client;
+      if (!client) {
+        throw new Error(`WebSocket客户端不存在 [${tokenId}]`);
+      }
+
+      let finalParams = params;
+      const battleCommands = [
+        "fight_startareaarena",
+        "fight_startpvp",
+        "fight_starttower",
+        "fight_startboss",
+        "fight_startlegionboss",
+        "fight_startdungeon",
+      ];
+      if (battleCommands.includes(cmd)) {
+        const battleVersion = gameData.value.battleVersion;
+        finalParams = { battleVersion, ...params };
+        wsLogger.info(
+          `⚔️ [战斗命令] 注入 battleVersion: ${battleVersion} [${cmd}]`,
+        );
+      }
+
+      try {
+        const result = await client.sendWithPromise(cmd, finalParams, timeout);
+
+        if (cmd === "fight_starttower") {
+          wsLogger.info(`🗼 [咸将塔] 收到爬塔响应 [${tokenId}]:`, result);
+        }
+
+        return result;
+      } catch (error) {
+        if (cmd === "fight_starttower") {
+          wsLogger.error(`🗼 [咸将塔] 爬塔请求失败 [${tokenId}]:`, error.message);
+        }
+
+        if (allowReconnectRetry && shouldRetryAfterReconnect(error)) {
+          wsLogger.warn(`检测到瞬断，尝试重连后重试 [${tokenId}] cmd=${cmd}`);
+          await closeWebSocketConnectionAsync(tokenId);
+          await new Promise((resolve) => setTimeout(resolve, 150));
+          return performSend(false);
+        }
+
+        throw error;
+      }
+    };
+
+    return performSend(true);
   };
 
   // 发送心跳消息

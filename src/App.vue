@@ -6,11 +6,6 @@
           <n-dialog-provider>
             <div id="app">
               <router-view />
-              <BatchDailyTasks
-                v-if="route.name !== 'BatchDailyTasks'"
-                :scheduler-only="true"
-                style="display: none"
-              />
             </div>
           </n-dialog-provider>
         </n-notification-provider>
@@ -23,12 +18,9 @@
 import { computed, onMounted, onUnmounted } from "vue";
 import { darkTheme } from "naive-ui";
 import { useTheme } from "@/composables/useTheme";
-import { useRoute } from "vue-router";
-import BatchDailyTasks from "@/views/BatchDailyTasks.vue";
 
 const { isDark, initTheme, setupSystemThemeListener, updateReactiveState } =
   useTheme();
-const route = useRoute();
 
 // Naive UI 主题
 const naiveTheme = computed(() => {

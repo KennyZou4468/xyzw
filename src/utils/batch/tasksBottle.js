@@ -25,6 +25,31 @@ export function createTasksBottle(deps) {
     currentRunningTokenId,
   } = deps;
 
+  const sendWithReconnectRetry = async (tokenId, cmd, params = {}, timeout = 5000) => {
+    try {
+      return await tokenStore.sendMessageWithPromise(tokenId, cmd, params, timeout);
+    } catch (error) {
+      const messageText = String(error?.message || "");
+      const shouldReconnect =
+        messageText.includes("WebSocket未连接") ||
+        messageText.includes("websocket not connected") ||
+        messageText.includes("连接已关闭");
+
+      if (!shouldReconnect) {
+        throw error;
+      }
+
+      addLog({
+        time: new Date().toLocaleTimeString(),
+        message: `检测到连接中断，正在重连并重试命令: ${cmd}`,
+        type: "warning",
+      });
+
+      await ensureConnection(tokenId, 1);
+      return tokenStore.sendMessageWithPromise(tokenId, cmd, params, timeout);
+    }
+  };
+
   /**
    * 重置罐子
    */
@@ -60,7 +85,7 @@ export function createTasksBottle(deps) {
           message: `${token.name} 停止计时...`,
           type: "info",
         });
-        await tokenStore.sendMessageWithPromise(
+        await sendWithReconnectRetry(
           tokenId,
           "bottlehelper_stop",
           {},
@@ -74,7 +99,7 @@ export function createTasksBottle(deps) {
           message: `${token.name} 开始计时...`,
           type: "info",
         });
-        await tokenStore.sendMessageWithPromise(
+        await sendWithReconnectRetry(
           tokenId,
           "bottlehelper_start",
           {},
@@ -137,7 +162,7 @@ export function createTasksBottle(deps) {
         });
         await ensureConnection(tokenId);
         if (shouldStop.value) return;
-        await tokenStore.sendMessageWithPromise(
+        await sendWithReconnectRetry(
           tokenId,
           "bottlehelper_claim",
           {},
