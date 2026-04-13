@@ -299,6 +299,13 @@
               <n-space>
                 <n-button
                   size="small"
+                  @click="startBatch"
+                  :disabled="isRunning || selectedTokens.length === 0"
+                >
+                  日常任务
+                </n-button>
+                <n-button
+                  size="small"
                   @click="claimHangUpRewards"
                   :disabled="isRunning || selectedTokens.length === 0"
                 >

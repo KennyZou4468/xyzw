@@ -8,6 +8,55 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const ensureArray = (value) => (Array.isArray(value) ? value : []);
 
+const TASK_LABEL_MAP = Object.freeze({
+  claimHangUpRewards: "领取挂机奖励",
+  batchAddHangUpTime: "挂机加钟",
+  resetBottles: "重置",
+  batchlingguanzi: "领取罐子",
+  climbTower: "爬塔",
+  climbWeirdTower: "爬异塔",
+  batchLegacyClaim: "领取功法残卷",
+  batchclubsign: "俱乐部签到",
+  startBatch: "日常任务",
+});
+
+const getTaskLabel = (taskName) => TASK_LABEL_MAP[taskName] || taskName;
+
+const TASK_START_LABEL_MAP = Object.freeze({
+  claimHangUpRewards: "开始领取挂机",
+  batchAddHangUpTime: "开始一键加钟",
+  resetBottles: "开始重置罐子",
+  batchlingguanzi: "开始一键领取盐罐",
+  climbTower: "开始爬塔",
+  climbWeirdTower: "开始爬异塔",
+  batchLegacyClaim: "开始领取功法残卷",
+  startBatch: "开始执行",
+});
+
+const getTaskStartLabel = (taskName) => TASK_START_LABEL_MAP[taskName] || `开始${getTaskLabel(taskName)}`;
+
+const logCn = (logger, accountName, message, level = "info") => {
+  if (typeof logger !== "function") return;
+  logger(`${accountName} ${message}`, level);
+};
+
+const formatTaskDoneMessage = (taskName, accountName, taskResult) => {
+  if (taskName === "resetBottles") {
+    return `=== ${accountName} 重置完成 ===`;
+  }
+
+  if (taskName === "batchLegacyClaim") {
+    const rewardValue = taskResult?.reward?.[0]?.value;
+    const totalCount = taskResult?.role?.items?.[37007]?.quantity;
+    if (Number.isFinite(Number(rewardValue)) && Number.isFinite(Number(totalCount))) {
+      return `=== ${accountName} 成功领取功法残卷${rewardValue}，共有${totalCount}个`;
+    }
+    return `=== ${accountName} 成功领取功法残卷`;
+  }
+
+  return `${accountName} ${getTaskLabel(taskName)}完成 ===`;
+};
+
 const TASK_NAME_LIST = [
   "startBatch",
   "claimHangUpRewards",
@@ -126,6 +175,12 @@ const runRepeated = async (count, fn, delayMs = DEFAULT_ACTION_DELAY_MS) => {
 };
 
 const extractServerErrorCode = (error) => {
+  const codeValue = error?.code;
+  const numericCode = Number(codeValue);
+  if (Number.isFinite(numericCode) && numericCode > 0) {
+    return numericCode;
+  }
+
   const text = String(error?.message || "");
   const match = text.match(/code=(\d+)/i);
   if (!match) return null;
@@ -133,8 +188,49 @@ const extractServerErrorCode = (error) => {
   return Number.isFinite(value) ? value : null;
 };
 
+const isServerBusinessError = (error) => {
+  const code = extractServerErrorCode(error);
+  if (code) return true;
+
+  const text = String(error?.message || "").toLowerCase();
+  return text.includes("server error") && text.includes("code=");
+};
+
+const isFatalBusinessError = (error) => {
+  const code = extractServerErrorCode(error);
+  const fatalCodes = new Set([
+    // Typical auth/session fatal states: token invalid/expired/account restricted.
+    1000001,
+    1000002,
+    1000003,
+    1000004,
+    1000005,
+  ]);
+
+  if (code && fatalCodes.has(code)) {
+    return true;
+  }
+
+  const text = String(error?.message || "").toLowerCase();
+  const fatalHints = [
+    "token invalid",
+    "token expired",
+    "login expired",
+    "auth failed",
+    "forbidden",
+    "banned",
+    "account disabled",
+  ];
+
+  return fatalHints.some((hint) => text.includes(hint));
+};
+
 const shouldSkipTaskError = (taskName, error) => {
   const code = extractServerErrorCode(error);
+  if (isFatalBusinessError(error)) {
+    return false;
+  }
+
   if (!code) return false;
 
   // Game-state business errors that can be skipped without blocking remaining tasks.
@@ -147,7 +243,47 @@ const shouldSkipTaskError = (taskName, error) => {
     return true;
   }
 
+  // Tower conditions not met (e.g. no attempts/invalid stage state) should not block other tasks.
+  if (taskName === "climbTower" && [1500020, 1500040].includes(code)) {
+    return true;
+  }
+
+  // Some accounts cannot perform startBatch sub-steps due to role state restrictions.
+  if (
+    ["claimHangUpRewards", "batchAddHangUpTime", "batchclubsign"].includes(taskName) &&
+    [2300070, 2300190].includes(code)
+  ) {
+    return true;
+  }
+
+  // Default fallback: unknown server business errors are task-scoped and should not block all remaining tasks.
+  if (isServerBusinessError(error)) {
+    return true;
+  }
+
   return false;
+};
+
+const isTransportDisconnectedError = (error) => {
+  const text = String(error?.message || "").toLowerCase();
+  return (
+    text.includes("websocket not connected") ||
+    text.includes("websocket closed") ||
+    text.includes("websocket disconnected") ||
+    text.includes("econnreset") ||
+    text.includes("etimedout") ||
+    text.includes("timeout cmd=")
+  );
+};
+
+const initializeAccountSession = async (client) => {
+  await client.sendRaw("role_getroleinfo", {
+    clientVersion: "2.21.2-fa918e1997301834-wx",
+    inviteUid: 0,
+    platform: "hortor",
+    platformExt: "mix",
+    scene: "",
+  });
 };
 
 class BackendWsClient {
@@ -309,19 +445,24 @@ class BackendWsClient {
   }
 }
 
-const executeNamedTask = async (client, taskName) => {
+const executeNamedTask = async (client, taskName, context = {}) => {
+  const logger = context.logger;
+  const accountName = context.accountName || "unknown";
+
   if (taskName === "batchclubsign") {
     await client.sendRaw("legion_signin", {});
     return;
   }
 
   if (taskName === "claimHangUpRewards") {
+    logCn(logger, accountName, "领取挂机奖励", "info");
     await client.sendRaw("system_claimhangupreward", {});
     return;
   }
 
   if (taskName === "batchAddHangUpTime") {
     for (let i = 0; i < 4; i += 1) {
+      logCn(logger, accountName, `挂机加钟 ${i + 1}/4`, "info");
       await client.sendRaw("system_mysharecallback", {
         isSkipShareCard: true,
         type: 2,
@@ -372,8 +513,10 @@ const executeNamedTask = async (client, taskName) => {
   }
 
   if (taskName === "resetBottles") {
+    logCn(logger, accountName, "停止计时...", "info");
     await client.sendRaw("bottlehelper_stop", {});
     await sleep(300);
+    logCn(logger, accountName, "开始计时...", "info");
     await client.sendRaw("bottlehelper_start", {});
     return;
   }
@@ -396,7 +539,7 @@ const executeNamedTask = async (client, taskName) => {
 
   if (taskName === "batchTopUpArena") {
     await runRepeated(3, async () => {
-      await executeNamedTask(client, "batcharenafight");
+      await executeNamedTask(client, "batcharenafight", context);
     });
     return;
   }
@@ -461,7 +604,8 @@ const executeNamedTask = async (client, taskName) => {
 
   if (taskName === "climbTower") {
     await trySend(client, "tower_getinfo", {}, { ignoreErrors: true });
-    await runRepeated(5, async () => {
+    await runRepeated(5, async (index) => {
+      logCn(logger, accountName, `爬塔第 ${index + 1} 次`, "info");
       await client.sendRaw("fight_starttower", {});
     });
     await trySend(client, "tower_claimreward", { rewardId: 1 }, { ignoreErrors: true });
@@ -579,8 +723,8 @@ const executeNamedTask = async (client, taskName) => {
   }
 
   if (taskName === "batchLegacyClaim") {
-    await client.sendRaw("legacy_claimhangup", {});
-    return;
+    const resp = await client.sendRaw("legacy_claimhangup", {});
+    return resp;
   }
 
   if (taskName === "batchLegacyGiftSendEnhanced") {
@@ -588,9 +732,22 @@ const executeNamedTask = async (client, taskName) => {
   }
 
   if (taskName === "startBatch") {
-    await executeNamedTask(client, "claimHangUpRewards");
-    await executeNamedTask(client, "batchAddHangUpTime");
-    await executeNamedTask(client, "batchclubsign");
+    const startBatchSteps = [
+      "claimHangUpRewards",
+      "batchAddHangUpTime",
+      "batchclubsign",
+    ];
+
+    for (const step of startBatchSteps) {
+      try {
+        await executeNamedTask(client, step, context);
+      } catch (error) {
+        if (shouldSkipTaskError(step, error)) {
+          continue;
+        }
+        throw error;
+      }
+    }
     return;
   }
 
@@ -600,6 +757,11 @@ const executeNamedTask = async (client, taskName) => {
 export const executeBatchPlanInBackend = async (task, logger = () => {}) => {
   const tokenCredentials = ensureArray(task?.payload?.tokenCredentials);
   const taskNames = ensureArray(task?.payload?.taskNames);
+  const debugLogs = task?.payload?.debugLogs === true;
+  const logStructured = (message, level = "info") => {
+    if (!debugLogs) return;
+    logger(message, level);
+  };
 
   if (tokenCredentials.length === 0) {
     throw new Error("batchPlan missing payload.tokenCredentials");
@@ -611,51 +773,138 @@ export const executeBatchPlanInBackend = async (task, logger = () => {}) => {
   let success = 0;
   let failed = 0;
   const details = [];
+  const totalAccounts = tokenCredentials.length;
+  const rawMaxActive = Number(task?.payload?.maxActive || totalAccounts);
+  const maxActive = Math.max(
+    1,
+    Math.min(totalAccounts, Number.isFinite(rawMaxActive) ? Math.floor(rawMaxActive) : totalAccounts),
+  );
+  let activeConnections = 0;
 
-  for (const credential of tokenCredentials) {
+  const runAccount = async (credential) => {
     const accountName = credential?.name || credential?.id || "unknown";
     const wsUrl = buildWsUrl(credential);
     const client = new BackendWsClient(wsUrl, logger);
+    let completedTaskCount = 0;
+    let taskFailureCount = 0;
 
     try {
-      logger(`[backend-exec] connecting account=${accountName}`, "info");
+      activeConnections += 1;
+      logger(`正在连接... (队列: ${activeConnections}/${maxActive})`, "info");
+      logStructured(`[backend-exec] connecting account=${accountName}`, "info");
+      logger(`=== 开始执行: ${accountName} ===`, "info");
       await client.connect();
 
-      await client.sendRaw("role_getroleinfo", {
-        clientVersion: "2.21.2-fa918e1997301834-wx",
-        inviteUid: 0,
-        platform: "hortor",
-        platformExt: "mix",
-        scene: "",
-      });
+      await initializeAccountSession(client);
 
       for (const taskName of taskNames) {
-        logger(`[backend-exec] account=${accountName} task=${taskName} start`, "info");
+        const taskLabel = getTaskLabel(taskName);
+        const taskStartLabel = getTaskStartLabel(taskName);
+        logger(`=== ${taskStartLabel}: ${accountName} ===`, "info");
+        logStructured(`[backend-exec] account=${accountName} task=${taskName} start`, "info");
+
+        const runTaskOnce = async () => {
+          try {
+            const taskResult = await executeNamedTask(client, taskName, { logger, accountName });
+            logStructured(`[backend-exec] account=${accountName} task=${taskName} done`, "success");
+            logger(formatTaskDoneMessage(taskName, accountName, taskResult), "success");
+            completedTaskCount += 1;
+            return true;
+          } catch (error) {
+            if (shouldSkipTaskError(taskName, error)) {
+              logStructured(
+                `[backend-exec] account=${accountName} task=${taskName} skipped: ${error.message}`,
+                "warn",
+              );
+              logger(`${accountName} ${taskLabel}跳过: ${error.message}`, "warn");
+              completedTaskCount += 1;
+              return true;
+            }
+            throw error;
+          }
+        };
+
         try {
-          await executeNamedTask(client, taskName);
-          logger(`[backend-exec] account=${accountName} task=${taskName} done`, "success");
+          await runTaskOnce();
         } catch (error) {
-          if (shouldSkipTaskError(taskName, error)) {
-            logger(
-              `[backend-exec] account=${accountName} task=${taskName} skipped: ${error.message}`,
+          if (isTransportDisconnectedError(error)) {
+            logStructured(
+              `[backend-exec] account=${accountName} task=${taskName} reconnecting after transport error: ${error.message}`,
               "warn",
             );
+            await client.disconnect();
+            await sleep(200);
+            await client.connect();
+            await initializeAccountSession(client);
+            try {
+              await runTaskOnce();
+            } catch (retryError) {
+              if (shouldSkipTaskError(taskName, retryError)) {
+                logStructured(
+                  `[backend-exec] account=${accountName} task=${taskName} skipped after reconnect: ${retryError.message}`,
+                  "warn",
+                );
+                logger(`${accountName} ${taskLabel}重连后跳过: ${retryError.message}`, "warn");
+                completedTaskCount += 1;
+              } else {
+                taskFailureCount += 1;
+                logStructured(
+                  `[backend-exec] account=${accountName} task=${taskName} failed after reconnect: ${retryError.message}`,
+                  "error",
+                );
+                logger(`${accountName} ${taskLabel}失败: ${retryError.message}`, "error");
+              }
+            }
             continue;
           }
-          throw error;
+          taskFailureCount += 1;
+          logStructured(
+            `[backend-exec] account=${accountName} task=${taskName} failed: ${error.message}`,
+            "error",
+          );
+          logger(`${accountName} ${taskLabel}失败: ${error.message}`, "error");
+          continue;
         }
       }
 
-      success += 1;
-      details.push({ accountName, ok: true });
+      const accountOk = completedTaskCount > 0;
+      if (accountOk) {
+        success += 1;
+      } else {
+        failed += 1;
+      }
+      details.push({
+        accountName,
+        ok: accountOk,
+        completedTaskCount,
+        taskFailureCount,
+      });
     } catch (error) {
       failed += 1;
       details.push({ accountName, ok: false, error: error.message });
-      logger(`[backend-exec] account=${accountName} failed: ${error.message}`, "error");
+      logStructured(`[backend-exec] account=${accountName} failed: ${error.message}`, "error");
+      logger(`${accountName} 执行失败: ${error.message}`, "error");
     } finally {
       await client.disconnect();
+      activeConnections = Math.max(0, activeConnections - 1);
+      logger(`${accountName} 连接已关闭  (队列: ${activeConnections}/${maxActive})`, "info");
     }
-  }
+  };
+
+  let cursor = 0;
+  const workerCount = Math.min(maxActive, tokenCredentials.length);
+  const workers = Array.from({ length: workerCount }, async () => {
+    while (true) {
+      const current = cursor;
+      cursor += 1;
+      if (current >= tokenCredentials.length) {
+        break;
+      }
+      await runAccount(tokenCredentials[current]);
+    }
+  });
+
+  await Promise.all(workers);
 
   return {
     success,

@@ -3,7 +3,7 @@
     "id": "task_1776056561717",
     "name": "test",
     "runType": "daily",
-    "runTime": "20:30",
+    "runTime": "17:26",
     "cronExpression": null,
     "selectedTokens": [
       "dfc9778057f08bd1c830bd8c0f6db98c",

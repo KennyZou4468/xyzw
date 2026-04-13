@@ -553,18 +553,23 @@ const executeTask = async (task) => {
     const taskNames = Array.isArray(task.payload?.taskNames)
       ? task.payload.taskNames
       : [];
-    writeLog("TASK", `[${task.id}] batchPlan start account=${accountName} batchTasks=${taskNames.join(",") || "(none)"}`);
+    writeLog("TASK", "=== 开始批量任务执行 ===");
+    writeLog("TASK", `批量任务账号=${accountName} 任务=${taskNames.join(",") || "(none)"}`);
 
     const result = await executeBatchPlanInBackend(task, (message, level = "info") => {
       const mappedLevel =
-        level === "error" ? "ERROR" : level === "success" ? "TASK" : "INFO";
-      writeLog(mappedLevel, `[${task.id}] ${message}`);
+        level === "error"
+          ? "ERROR"
+          : level === "warn"
+            ? "WARN"
+            : level === "success"
+              ? "TASK"
+              : "INFO";
+      writeLog(mappedLevel, message);
     });
 
-    writeLog(
-      "TASK",
-      `[${task.id}] batchPlan done success=${result.success} failed=${result.failed}`,
-    );
+    writeLog("TASK", `批量任务执行完成 success=${result.success} failed=${result.failed}`);
+    writeLog("TASK", "=== 批量任务执行结束 ===");
     return;
   }
 };
@@ -623,10 +628,12 @@ const stop = (signal = "manual") => {
   }
 
   writeLog("INFO", `background scheduler stopped (${signal})`);
+  writeLog("INFO", "=== 定时任务调度服务已停止 ===");
 };
 
 const start = () => {
   writeLog("INFO", `background scheduler started (tasks=${tasksPath}, log=${logPath}, tickMs=${tickMs})`);
+  writeLog("INFO", "=== 定时任务调度服务已启动 ===");
   startApiServer();
 
   intervalHandle = setInterval(() => {
