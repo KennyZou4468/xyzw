@@ -3,6 +3,9 @@ import { WebSocket } from "ws";
 
 const DEFAULT_TIMEOUT_MS = 12000;
 const DEFAULT_ACTION_DELAY_MS = 400;
+const DEFAULT_MAX_ACTIVE = 2;
+const DEFAULT_CONNECT_STAGGER_MS = 300;
+const DEFAULT_ACCOUNT_RETRIES = 1;
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -774,21 +777,23 @@ export const executeBatchPlanInBackend = async (task, logger = () => {}) => {
   let failed = 0;
   const details = [];
   const totalAccounts = tokenCredentials.length;
-  const rawMaxActive = Number(task?.payload?.maxActive || totalAccounts);
+  const rawMaxActive = Number(task?.payload?.maxActive || DEFAULT_MAX_ACTIVE);
+  const connectStaggerMs = Math.max(0, Number(task?.payload?.connectStaggerMs || DEFAULT_CONNECT_STAGGER_MS));
+  const accountRetries = Math.max(0, Number(task?.payload?.accountRetries || DEFAULT_ACCOUNT_RETRIES));
   const maxActive = Math.max(
     1,
     Math.min(totalAccounts, Number.isFinite(rawMaxActive) ? Math.floor(rawMaxActive) : totalAccounts),
   );
   let activeConnections = 0;
 
-  const runAccount = async (credential) => {
+  const runAccount = async (credential, workerIndex) => {
     const accountName = credential?.name || credential?.id || "unknown";
     const wsUrl = buildWsUrl(credential);
     const client = new BackendWsClient(wsUrl, logger);
     let completedTaskCount = 0;
     let taskFailureCount = 0;
 
-    try {
+    const runOnce = async () => {
       activeConnections += 1;
       logger(`正在连接... (队列: ${activeConnections}/${maxActive})`, "info");
       logStructured(`[backend-exec] connecting account=${accountName}`, "info");
@@ -867,6 +872,46 @@ export const executeBatchPlanInBackend = async (task, logger = () => {}) => {
         }
       }
 
+      return {
+        completedTaskCount,
+        taskFailureCount,
+      };
+    };
+
+    // Spread worker startup slightly to avoid all accounts dialing at the same millisecond.
+    if (connectStaggerMs > 0) {
+      await sleep(workerIndex * connectStaggerMs);
+    }
+
+    try {
+      let lastError = null;
+      let accountRunResult = null;
+
+      for (let attempt = 0; attempt <= accountRetries; attempt += 1) {
+        try {
+          accountRunResult = await runOnce();
+          lastError = null;
+          break;
+        } catch (error) {
+          lastError = error;
+          const messageText = String(error?.message || "").toLowerCase();
+          const canRetry = messageText.includes("websocket closed") || messageText.includes("websocket error");
+          if (!canRetry || attempt >= accountRetries) {
+            throw error;
+          }
+          logger(`${accountName} 连接异常，正在重试 (${attempt + 1}/${accountRetries})...`, "warn");
+          await client.disconnect();
+          await sleep(500 + attempt * 500);
+        }
+      }
+
+      if (!accountRunResult && lastError) {
+        throw lastError;
+      }
+
+      completedTaskCount = accountRunResult?.completedTaskCount || completedTaskCount;
+      taskFailureCount = accountRunResult?.taskFailureCount || taskFailureCount;
+
       const accountOk = completedTaskCount > 0;
       if (accountOk) {
         success += 1;
@@ -900,7 +945,7 @@ export const executeBatchPlanInBackend = async (task, logger = () => {}) => {
       if (current >= tokenCredentials.length) {
         break;
       }
-      await runAccount(tokenCredentials[current]);
+      await runAccount(tokenCredentials[current], current);
     }
   });
 
