@@ -1,5 +1,5 @@
-import { HERO_DICT } from "@/utils/HeroList";
-import { PEACH_TASKS } from "@/utils/PeachTaskIds";
+import { HERO_DICT } from "../HeroList.js";
+import { PEACH_TASKS } from "../PeachTaskIds.js";
 
 /**
  * 开箱、钓鱼、招募类任务

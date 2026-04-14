@@ -200,7 +200,7 @@ export function createTasksHangUp(deps) {
     });
 
     // Preload questions
-    const { preloadQuestions } = await import("@/utils/studyQuestionsFromJSON.js");
+    const { preloadQuestions } = await import("../studyQuestionsFromJSON.js");
     addLog({
       time: new Date().toLocaleTimeString(),
       message: `正在加载题库...`,

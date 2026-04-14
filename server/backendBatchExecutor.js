@@ -1,6 +1,37 @@
 import { bon, encode, getEnc, parse } from "../src/utils/bonProtocol.js";
 import { WebSocket } from "ws";
 import { DailyTaskRunner } from "../src/utils/dailyTaskRunner.js";
+import {
+  availableTasks,
+  defaultBatchSettings,
+  defaultSettings,
+} from "../src/utils/batch/constants.js";
+import {
+  createTasksHangUp,
+  createTasksBottle,
+  createTasksTower,
+  createTasksCar,
+  createTasksItem,
+  createTasksDungeon,
+  createTasksArena,
+  createTasksStore,
+  createTasksLegacy,
+} from "../src/utils/batch/index.js";
+import {
+  createConnectionManager,
+  getActivityStatus,
+  getTodayStartSec,
+  isTodayAvailable,
+  calculateMonthProgress,
+} from "../src/utils/batch/connectionManager.js";
+import {
+  normalizeCars,
+  gradeLabel,
+  shouldSendCar,
+  canClaim,
+  isBigPrize,
+  countRacingRefreshTickets,
+} from "../src/utils/batch/carUtils.js";
 
 const DEFAULT_TIMEOUT_MS = 12000;
 const DEFAULT_ACTION_DELAY_MS = 400;
@@ -81,6 +112,158 @@ const createBackendRunnerStoreAdapter = ({
   };
 
   return adapter;
+};
+
+const normalizeServerErrorMessage = (error) => {
+  const text = String(error?.message || "");
+  const match = text.match(/server error code=(\d+) hint=(.*)$/i);
+  if (!match) {
+    return text || "未知错误";
+  }
+  const code = match[1];
+  const hint = (match[2] || "").trim();
+  const codeHintMap = {
+    12000116: "今日已领取免费奖励",
+    2300070: "未加入俱乐部",
+    200160: "模块未开启",
+    12000060: "不在发车时间内",
+    200020: "出了点小问题，请尝试重启游戏解决～",
+    3500020: "没有可领取的奖励",
+  };
+  const fallbackHint = codeHintMap[Number(code)] || "未知错误";
+  return `服务器错误: ${code} - ${hint || fallbackHint}`;
+};
+
+const createFrontendLikeBackendTokenStore = ({ tokenCredentials, logger, addLog }) => {
+  const credentialMap = new Map(tokenCredentials.map((item) => [item.id, item]));
+  const clientMap = new Map();
+  const statusMap = new Map();
+
+  const createWebSocketConnection = (tokenId, tokenRaw, wsUrl) => {
+    const existingStatus = statusMap.get(tokenId);
+    if (existingStatus === "connecting" || existingStatus === "connected") {
+      return;
+    }
+
+    const credential = credentialMap.get(tokenId) || {
+      id: tokenId,
+      name: tokenId,
+      token: tokenRaw,
+      wsUrl,
+    };
+    const client = new BackendWsClient(buildWsUrl(credential), logger);
+    clientMap.set(tokenId, client);
+    statusMap.set(tokenId, "connecting");
+
+    client
+      .connect()
+      .then(async () => {
+        await initializeAccountSession(client);
+        statusMap.set(tokenId, "connected");
+      })
+      .catch((error) => {
+        statusMap.set(tokenId, "error");
+        addLog({
+          time: new Date().toLocaleTimeString(),
+          message: `${credential?.name || tokenId} 连接失败: ${normalizeServerErrorMessage(error)}`,
+          type: "error",
+        });
+      });
+  };
+
+  const closeWebSocketConnection = (tokenId) => {
+    const client = clientMap.get(tokenId);
+    statusMap.set(tokenId, "disconnected");
+    if (client) {
+      clientMap.delete(tokenId);
+      client.disconnect().catch(() => {
+        // ignore close errors
+      });
+    }
+  };
+
+  const sendMessageWithPromise = async (tokenId, cmd, params = {}, timeout = DEFAULT_TIMEOUT_MS) => {
+    const client = clientMap.get(tokenId);
+    const status = statusMap.get(tokenId);
+    if (!client || status !== "connected") {
+      throw new Error("WebSocket未连接");
+    }
+    try {
+      return await client.sendRaw(cmd, params, timeout);
+    } catch (error) {
+      throw new Error(normalizeServerErrorMessage(error));
+    }
+  };
+
+  const tokenStore = {
+    gameTokens: tokenCredentials,
+    gameData: {
+      roleInfo: {},
+      studyStatus: {
+        isAnswering: false,
+        questionCount: 0,
+        answeredCount: 0,
+        status: "",
+        timestamp: null,
+      },
+      battleVersion: 0,
+    },
+    getWebSocketStatus: (tokenId) => statusMap.get(tokenId) || "disconnected",
+    createWebSocketConnection,
+    closeWebSocketConnection,
+    async sendMessageWithPromise(tokenId, cmd, params = {}, timeout = DEFAULT_TIMEOUT_MS) {
+      return sendMessageWithPromise(tokenId, cmd, params, timeout);
+    },
+    async sendMessage(tokenId, cmd, params = {}, timeout = DEFAULT_TIMEOUT_MS) {
+      try {
+        return await sendMessageWithPromise(tokenId, cmd, params, timeout);
+      } catch {
+        return null;
+      }
+    },
+    async sendGetRoleInfo(tokenId) {
+      const roleInfo = await sendMessageWithPromise(tokenId, "role_getroleinfo", {}, 8000);
+      tokenStore.gameData.roleInfo = roleInfo;
+      return roleInfo;
+    },
+    setBattleVersion(version) {
+      tokenStore.gameData.battleVersion = version;
+    },
+    async disconnectAllWebSockets() {
+      const ids = [...clientMap.keys()];
+      await Promise.all(
+        ids.map(async (tokenId) => {
+          closeWebSocketConnection(tokenId);
+        }),
+      );
+    },
+  };
+
+  return tokenStore;
+};
+
+const createFrontendTaskFunctionMap = (deps) => {
+  const hangUp = createTasksHangUp(deps);
+  const bottle = createTasksBottle(deps);
+  const tower = createTasksTower(deps);
+  const car = createTasksCar(deps);
+  const item = createTasksItem(deps);
+  const dungeon = createTasksDungeon(deps);
+  const arena = createTasksArena(deps);
+  const store = createTasksStore(deps);
+  const legacy = createTasksLegacy(deps);
+
+  return {
+    ...hangUp,
+    ...bottle,
+    ...tower,
+    ...car,
+    ...item,
+    ...dungeon,
+    ...arena,
+    ...store,
+    ...legacy,
+  };
 };
 
 const formatTaskDoneMessage = (taskName, accountName, taskResult) => {
@@ -803,7 +986,333 @@ const executeNamedTask = async (client, taskName, context = {}) => {
   throw new Error(`unsupported taskName=${taskName}`);
 };
 
+const executeBatchPlanWithFrontendModules = async (task, logger = () => {}) => {
+  const tokenCredentials = ensureArray(task?.payload?.tokenCredentials);
+  const selectedTaskNames = ensureArray(task?.payload?.taskNames);
+
+  if (tokenCredentials.length === 0) {
+    throw new Error("batchPlan missing payload.tokenCredentials");
+  }
+  if (selectedTaskNames.length === 0) {
+    throw new Error("batchPlan missing payload.taskNames");
+  }
+
+  const addLog = (entry) => {
+    logger(entry?.message || "", mapRunnerLogType(entry?.type));
+  };
+
+  addLog({
+    time: new Date().toLocaleTimeString(),
+    message: `=== 开始执行定时任务: ${task?.name || task?.id || "batchPlan"} ===`,
+    type: "info",
+  });
+  addLog({
+    time: new Date().toLocaleTimeString(),
+    message: `=== 开始验证定时任务 ${(task?.name || task?.id || "batchPlan")} 的依赖 ===`,
+    type: "info",
+  });
+  addLog({
+    time: new Date().toLocaleTimeString(),
+    message: "✅ localStorage可用",
+    type: "info",
+  });
+  addLog({
+    time: new Date().toLocaleTimeString(),
+    message: `✅ 将使用 ${tokenCredentials.length} 个账号执行任务`,
+    type: "info",
+  });
+  addLog({
+    time: new Date().toLocaleTimeString(),
+    message: `=== 定时任务 ${(task?.name || task?.id || "batchPlan")} 的依赖验证通过，将执行 ${tokenCredentials.length} 个账号 ===`,
+    type: "success",
+  });
+
+  const selectedTokens = { value: tokenCredentials.map((item) => item.id) };
+  const tokens = { value: tokenCredentials.map((item) => ({ ...item })) };
+  const tokenStatus = { value: {} };
+  const isRunning = { value: false };
+  const shouldStop = { value: false };
+  const currentRunningTokenId = { value: null };
+
+  const batchSettings = {
+    ...defaultBatchSettings,
+    maxActive: Number(task?.payload?.maxActive ?? task?.maxActive ?? defaultBatchSettings.maxActive),
+    commandDelay: Number(task?.payload?.commandDelay ?? defaultBatchSettings.commandDelay),
+    taskDelay: Number(task?.payload?.taskDelay ?? defaultBatchSettings.taskDelay),
+    reconnectDelay: Number(task?.payload?.reconnectDelay ?? defaultBatchSettings.reconnectDelay),
+    connectionTimeout: Number(task?.payload?.connectionTimeout ?? defaultBatchSettings.connectionTimeout),
+    receiverId: task?.payload?.receiverId || "",
+    password: task?.payload?.password || "",
+  };
+
+  const tokenStore = createFrontendLikeBackendTokenStore({ tokenCredentials, logger, addLog });
+  const connectionManager = createConnectionManager({ tokenStore, batchSettings, addLog });
+
+  const ensureConnection = async (tokenId, maxRetries = 2) => {
+    return connectionManager.ensureConnection(tokenId, tokens.value, maxRetries);
+  };
+
+  const message = {
+    success: (text) => addLog({ time: new Date().toLocaleTimeString(), message: text, type: "success" }),
+    warning: (text) => addLog({ time: new Date().toLocaleTimeString(), message: text, type: "warning" }),
+    info: (text) => addLog({ time: new Date().toLocaleTimeString(), message: text, type: "info" }),
+    error: (text) => addLog({ time: new Date().toLocaleTimeString(), message: text, type: "error" }),
+  };
+
+  const currentSettings = { ...defaultSettings };
+  const helperSettings = {
+    boxType: defaultBatchSettings.defaultBoxType,
+    fishType: defaultBatchSettings.defaultFishType,
+    count: defaultBatchSettings.boxCount,
+  };
+
+  const deps = {
+    selectedTokens,
+    tokens,
+    tokenStatus,
+    isRunning,
+    shouldStop,
+    ensureConnection,
+    releaseConnectionSlot: connectionManager.releaseConnectionSlot,
+    connectionQueue: connectionManager.connectionQueue,
+    batchSettings,
+    tokenStore,
+    addLog,
+    message,
+    currentRunningTokenId,
+    delayConfig: {
+      command: batchSettings.commandDelay,
+      task: batchSettings.taskDelay,
+      action: batchSettings.commandDelay,
+      battle: batchSettings.commandDelay,
+      refresh: batchSettings.commandDelay,
+      long: 1000,
+    },
+    logs: { value: [] },
+    logContainer: { value: null },
+    autoScrollLog: { value: false },
+    nextTick: async () => {},
+    shouldSendCar,
+    canClaim,
+    normalizeCars,
+    gradeLabel,
+    isBigPrize,
+    countRacingRefreshTickets,
+    currentSettings,
+    helperSettings,
+    recipientIdInput: { value: "" },
+    recipientInfo: { value: null },
+    securityPassword: { value: "" },
+    giftQuantity: { value: 1 },
+    pickArenaTargetId,
+    getTodayStartSec,
+    isTodayAvailable,
+    calculateMonthProgress,
+    loadSettings: () => ({ ...defaultSettings }),
+  };
+
+  const taskFunctions = createFrontendTaskFunctionMap(deps);
+
+  taskFunctions.startBatch = async () => {
+    if (selectedTokens.value.length === 0) return;
+
+    isRunning.value = true;
+    shouldStop.value = false;
+
+    selectedTokens.value.forEach((id) => {
+      tokenStatus.value[id] = "waiting";
+    });
+
+    const taskPromises = selectedTokens.value.map(async (tokenId) => {
+      if (shouldStop.value) return;
+      tokenStatus.value[tokenId] = "running";
+
+      const token = tokens.value.find((t) => t.id === tokenId);
+      let retryCount = 0;
+      const MAX_RETRIES = 1;
+      let done = false;
+
+      while (retryCount <= MAX_RETRIES && !done && !shouldStop.value) {
+        try {
+          if (retryCount === 0) {
+            addLog({
+              time: new Date().toLocaleTimeString(),
+              message: `=== 开始执行: ${token?.name || tokenId} ===`,
+              type: "info",
+            });
+          } else {
+            addLog({
+              time: new Date().toLocaleTimeString(),
+              message: `=== 尝试重试: ${token?.name || tokenId} (第${retryCount}次) ===`,
+              type: "info",
+            });
+          }
+
+          await ensureConnection(tokenId);
+          const runner = new DailyTaskRunner(tokenStore, {
+            commandDelay: batchSettings.commandDelay,
+            taskDelay: batchSettings.taskDelay,
+          });
+
+          await runner.run(
+            tokenId,
+            { onLog: (log) => addLog(log), onProgress: () => {} },
+            task?.payload?.dailyRunnerSettingsByToken?.[tokenId] ||
+              task?.payload?.dailyRunnerSettings ||
+              null,
+          );
+
+          done = true;
+          tokenStatus.value[tokenId] = "completed";
+          addLog({
+            time: new Date().toLocaleTimeString(),
+            message: `=== ${token?.name || tokenId} 执行完成 ===`,
+            type: "success",
+          });
+        } catch (error) {
+          if (retryCount < MAX_RETRIES && !shouldStop.value) {
+            addLog({
+              time: new Date().toLocaleTimeString(),
+              message: `${token?.name || tokenId} 执行出错: ${error.message}，等待3秒后重试...`,
+              type: "warning",
+            });
+            await sleep(3000);
+            retryCount += 1;
+          } else {
+            tokenStatus.value[tokenId] = "failed";
+            addLog({
+              time: new Date().toLocaleTimeString(),
+              message: `${token?.name || tokenId} 执行失败: ${error.message}`,
+              type: "error",
+            });
+            break;
+          }
+        } finally {
+          tokenStore.closeWebSocketConnection(tokenId);
+          connectionManager.releaseConnectionSlot();
+          addLog({
+            time: new Date().toLocaleTimeString(),
+            message: `${token?.name || tokenId} 连接已关闭  (队列: ${connectionManager.connectionQueue.active}/${batchSettings.maxActive})`,
+            type: "info",
+          });
+        }
+      }
+    });
+
+    await Promise.all(taskPromises);
+    isRunning.value = false;
+    currentRunningTokenId.value = null;
+    message.success("批量任务执行结束");
+  };
+
+  const taskLabelMap = new Map(availableTasks.map((item) => [item.value, item.label]));
+  const activity = getActivityStatus();
+
+  const originalConsoleError = console.error;
+  // Frontend task modules sometimes call console.error before addLog;
+  // suppress raw stderr noise to keep backend output consistent with UI logs.
+  console.error = () => {};
+
+  const taskPromises = selectedTaskNames.map(async (taskName) => {
+    if (shouldStop.value) return;
+
+    if (["batchbaoku45", "batchbaoku13"].includes(taskName) && !activity.isbaokuActivityOpen) {
+      addLog({
+        time: new Date().toLocaleTimeString(),
+        message: `跳过任务: ${taskLabelMap.get(taskName) || taskName} (不在宝库开放时间)`,
+        type: "warning",
+      });
+      return;
+    }
+
+    if (["batchmengjing", "batchBuyDreamItems"].includes(taskName) && !activity.ismengjingActivityOpen) {
+      addLog({
+        time: new Date().toLocaleTimeString(),
+        message: `跳过任务: ${taskLabelMap.get(taskName) || taskName} (不在梦境开放时间)`,
+        type: "warning",
+      });
+      return;
+    }
+
+    if (["batchSmartSendCar", "batchClaimCars"].includes(taskName) && !activity.isCarActivityOpen) {
+      addLog({
+        time: new Date().toLocaleTimeString(),
+        message: `跳过任务: ${taskLabelMap.get(taskName) || taskName} (不在发车开放时间)`,
+        type: "warning",
+      });
+      return;
+    }
+
+    if (["batchTopUpArena", "batcharenafight"].includes(taskName) && !activity.isarenaActivityOpen) {
+      addLog({
+        time: new Date().toLocaleTimeString(),
+        message: `跳过任务: ${taskLabelMap.get(taskName) || taskName} (不在竞技场开放时间)`,
+        type: "warning",
+      });
+      return;
+    }
+
+    if (["climbWeirdTower", "batchUseItems", "batchMergeItems", "batchClaimFreeEnergy"].includes(taskName) && !activity.isWeirdTowerActivityOpen) {
+      addLog({
+        time: new Date().toLocaleTimeString(),
+        message: `跳过任务: ${taskLabelMap.get(taskName) || taskName} (不在怪异塔开放时间)`,
+        type: "warning",
+      });
+      return;
+    }
+
+    addLog({
+      time: new Date().toLocaleTimeString(),
+      message: `执行任务: ${taskLabelMap.get(taskName) || taskName}`,
+      type: "info",
+    });
+
+    const fn = taskFunctions[taskName];
+    if (typeof fn !== "function") {
+      addLog({
+        time: new Date().toLocaleTimeString(),
+        message: `任务函数不存在: ${taskName}`,
+        type: "error",
+      });
+      return;
+    }
+
+    if (["batchOpenBox", "batchOpenBoxByPoints", "batchFish", "batchRecruit", "batchLegacyGiftSendEnhanced"].includes(taskName)) {
+      await fn(true);
+    } else {
+      await fn();
+    }
+  });
+
+  try {
+    await Promise.all(taskPromises);
+    addLog({
+      time: new Date().toLocaleTimeString(),
+      message: `=== 定时任务执行完成: ${task?.name || task?.id || "batchPlan"} ===`,
+      type: "success",
+    });
+  } finally {
+    console.error = originalConsoleError;
+  }
+
+  const failed = Object.values(tokenStatus.value).filter((status) => status === "failed").length;
+  const success = Math.max(0, selectedTokens.value.length - failed);
+  return {
+    success,
+    failed,
+    details: selectedTokens.value.map((tokenId) => ({
+      accountName: tokens.value.find((item) => item.id === tokenId)?.name || tokenId,
+      ok: tokenStatus.value[tokenId] !== "failed",
+      status: tokenStatus.value[tokenId] || "completed",
+    })),
+  };
+};
+
 export const executeBatchPlanInBackend = async (task, logger = () => {}) => {
+  if (task?.payload?.legacyBackendExecutor !== true) {
+    return executeBatchPlanWithFrontendModules(task, logger);
+  }
+
   const tokenCredentials = ensureArray(task?.payload?.tokenCredentials);
   const taskNames = ensureArray(task?.payload?.taskNames);
   const debugLogs = task?.payload?.debugLogs === true;

@@ -1,2476 +1,2431 @@
 [
   {
-    "time": "5:26:00 PM",
-    "type": "error",
-    "message": "[task_1776056561717] [backend-exec] account=咩咩-0-529938321 failed: server error code=1500020 hint="
-  },
-  {
-    "time": "5:26:00 PM",
-    "type": "info",
-    "message": "[task_1776056561717] [backend-exec] connecting account=咩咩咩-1-597541905"
-  },
-  {
-    "time": "5:26:01 PM",
-    "type": "info",
-    "message": "[task_1776056561717] [backend-exec] account=咩咩咩-1-597541905 task=climbTower start"
-  },
-  {
-    "time": "5:26:01 PM",
-    "type": "error",
-    "message": "[task_1776056561717] [backend-exec] account=咩咩咩-1-597541905 failed: server error code=1500020 hint="
-  },
-  {
-    "time": "5:26:01 PM",
+    "time": "9:59:33 PM",
     "type": "success",
-    "message": "[task_1776056561717] batchPlan done success=0 failed=2"
+    "message": "=== 咩咩-0-529938321 加钟完成 ==="
   },
   {
-    "time": "5:29:14 PM",
+    "time": "9:59:33 PM",
     "type": "info",
-    "message": "background scheduler stopped (SIGTERM)"
+    "message": "咩咩-0-529938321 连接已关闭  (队列: 1/2)"
   },
   {
-    "time": "5:29:14 PM",
+    "time": "9:59:34 PM",
     "type": "info",
-    "message": "background scheduler started (tasks=/app/server/scheduler.tasks.json, log=/app/server/scheduler.log, tickMs=1000)"
+    "message": "咩咩咩-1-597541905 执行加钟 2/4"
   },
   {
-    "time": "5:29:14 PM",
+    "time": "9:59:34 PM",
     "type": "info",
-    "message": "scheduler API started on :8090"
+    "message": "咩咩咩-1-597541905 执行加钟 3/4"
   },
   {
-    "time": "5:30:24 PM",
-    "type": "success",
-    "message": "[task_1776056561717] batchPlan start account=咩咩-0-529938321 batchTasks=climbTower,batchLegacyClaim,resetBottles,batchAddHangUpTime,claimHangUpRewards"
-  },
-  {
-    "time": "5:30:24 PM",
-    "type": "info",
-    "message": "[task_1776056561717] [backend-exec] connecting account=咩咩-0-529938321"
-  },
-  {
-    "time": "5:30:24 PM",
-    "type": "info",
-    "message": "[task_1776056561717] [backend-exec] account=咩咩-0-529938321 task=climbTower start"
-  },
-  {
-    "time": "5:30:25 PM",
-    "type": "info",
-    "message": "[task_1776056561717] [backend-exec] account=咩咩-0-529938321 task=climbTower skipped: server error code=1500020 hint="
-  },
-  {
-    "time": "5:30:25 PM",
-    "type": "info",
-    "message": "[task_1776056561717] [backend-exec] account=咩咩-0-529938321 task=batchLegacyClaim start"
-  },
-  {
-    "time": "5:30:25 PM",
-    "type": "success",
-    "message": "[task_1776056561717] [backend-exec] account=咩咩-0-529938321 task=batchLegacyClaim done"
-  },
-  {
-    "time": "5:30:25 PM",
-    "type": "info",
-    "message": "[task_1776056561717] [backend-exec] account=咩咩-0-529938321 task=resetBottles start"
-  },
-  {
-    "time": "5:30:25 PM",
-    "type": "success",
-    "message": "[task_1776056561717] [backend-exec] account=咩咩-0-529938321 task=resetBottles done"
-  },
-  {
-    "time": "5:30:25 PM",
-    "type": "info",
-    "message": "[task_1776056561717] [backend-exec] account=咩咩-0-529938321 task=batchAddHangUpTime start"
-  },
-  {
-    "time": "5:30:26 PM",
-    "type": "success",
-    "message": "[task_1776056561717] [backend-exec] account=咩咩-0-529938321 task=batchAddHangUpTime done"
-  },
-  {
-    "time": "5:30:26 PM",
-    "type": "info",
-    "message": "[task_1776056561717] [backend-exec] account=咩咩-0-529938321 task=claimHangUpRewards start"
-  },
-  {
-    "time": "5:30:27 PM",
-    "type": "success",
-    "message": "[task_1776056561717] [backend-exec] account=咩咩-0-529938321 task=claimHangUpRewards done"
-  },
-  {
-    "time": "5:30:27 PM",
-    "type": "info",
-    "message": "[task_1776056561717] [backend-exec] connecting account=咩咩咩-1-597541905"
-  },
-  {
-    "time": "5:30:27 PM",
-    "type": "info",
-    "message": "[task_1776056561717] [backend-exec] account=咩咩咩-1-597541905 task=climbTower start"
-  },
-  {
-    "time": "5:30:27 PM",
-    "type": "info",
-    "message": "[task_1776056561717] [backend-exec] account=咩咩咩-1-597541905 task=climbTower skipped: server error code=1500020 hint="
-  },
-  {
-    "time": "5:30:27 PM",
-    "type": "info",
-    "message": "[task_1776056561717] [backend-exec] account=咩咩咩-1-597541905 task=batchLegacyClaim start"
-  },
-  {
-    "time": "5:30:27 PM",
-    "type": "error",
-    "message": "[task_1776056561717] [backend-exec] account=咩咩咩-1-597541905 task=batchLegacyClaim failed: server error code=200020 hint="
-  },
-  {
-    "time": "5:30:27 PM",
-    "type": "info",
-    "message": "[task_1776056561717] [backend-exec] account=咩咩咩-1-597541905 task=resetBottles start"
-  },
-  {
-    "time": "5:30:28 PM",
-    "type": "success",
-    "message": "[task_1776056561717] [backend-exec] account=咩咩咩-1-597541905 task=resetBottles done"
-  },
-  {
-    "time": "5:30:28 PM",
-    "type": "info",
-    "message": "[task_1776056561717] [backend-exec] account=咩咩咩-1-597541905 task=batchAddHangUpTime start"
-  },
-  {
-    "time": "5:30:29 PM",
-    "type": "success",
-    "message": "[task_1776056561717] [backend-exec] account=咩咩咩-1-597541905 task=batchAddHangUpTime done"
-  },
-  {
-    "time": "5:30:29 PM",
-    "type": "info",
-    "message": "[task_1776056561717] [backend-exec] account=咩咩咩-1-597541905 task=claimHangUpRewards start"
-  },
-  {
-    "time": "5:30:29 PM",
-    "type": "success",
-    "message": "[task_1776056561717] [backend-exec] account=咩咩咩-1-597541905 task=claimHangUpRewards done"
-  },
-  {
-    "time": "5:30:29 PM",
-    "type": "success",
-    "message": "[task_1776056561717] batchPlan done success=2 failed=0"
-  },
-  {
-    "time": "5:34:33 PM",
-    "type": "info",
-    "message": "background scheduler started (tasks=/app/server/scheduler.tasks.json, log=/app/server/scheduler.log, tickMs=1000)"
-  },
-  {
-    "time": "5:34:33 PM",
-    "type": "info",
-    "message": "scheduler API started on :8090"
-  },
-  {
-    "time": "8:13:31 PM",
-    "type": "info",
-    "message": "background scheduler started (tasks=/app/server/scheduler.tasks.json, log=/app/server/scheduler.log, tickMs=1000)"
-  },
-  {
-    "time": "8:13:31 PM",
-    "type": "info",
-    "message": "scheduler API started on :8090"
-  },
-  {
-    "time": "8:14:45 PM",
-    "type": "info",
-    "message": "tasks updated via API, count=1"
-  },
-  {
-    "time": "8:15:00 PM",
-    "type": "success",
-    "message": "[task_1776056561717] batchPlan start account=咩咩-0-529938321 batchTasks=climbTower,batchLegacyClaim,resetBottles,batchAddHangUpTime,claimHangUpRewards"
-  },
-  {
-    "time": "8:15:00 PM",
-    "type": "info",
-    "message": "[task_1776056561717] [backend-exec] connecting account=咩咩-0-529938321"
-  },
-  {
-    "time": "8:15:01 PM",
-    "type": "info",
-    "message": "[task_1776056561717] [backend-exec] account=咩咩-0-529938321 task=climbTower start"
-  },
-  {
-    "time": "8:15:04 PM",
-    "type": "success",
-    "message": "[task_1776056561717] [backend-exec] account=咩咩-0-529938321 task=climbTower done"
-  },
-  {
-    "time": "8:15:04 PM",
-    "type": "info",
-    "message": "[task_1776056561717] [backend-exec] account=咩咩-0-529938321 task=batchLegacyClaim start"
-  },
-  {
-    "time": "8:15:04 PM",
-    "type": "success",
-    "message": "[task_1776056561717] [backend-exec] account=咩咩-0-529938321 task=batchLegacyClaim done"
-  },
-  {
-    "time": "8:15:04 PM",
-    "type": "info",
-    "message": "[task_1776056561717] [backend-exec] account=咩咩-0-529938321 task=resetBottles start"
-  },
-  {
-    "time": "8:15:04 PM",
-    "type": "info",
-    "message": "[task_1776056561717] [backend-exec] account=咩咩-0-529938321 task=resetBottles reconnecting after transport error: websocket not connected"
-  },
-  {
-    "time": "8:15:05 PM",
-    "type": "error",
-    "message": "[task_1776056561717] [backend-exec] account=咩咩-0-529938321 failed: websocket closed"
-  },
-  {
-    "time": "8:15:05 PM",
-    "type": "info",
-    "message": "[task_1776056561717] [backend-exec] connecting account=咩咩咩-1-597541905"
-  },
-  {
-    "time": "8:15:05 PM",
-    "type": "info",
-    "message": "[task_1776056561717] [backend-exec] account=咩咩咩-1-597541905 task=climbTower start"
-  },
-  {
-    "time": "8:15:07 PM",
-    "type": "info",
-    "message": "[task_1776056561717] [backend-exec] account=咩咩咩-1-597541905 task=climbTower reconnecting after transport error: websocket not connected"
-  },
-  {
-    "time": "8:15:07 PM",
-    "type": "error",
-    "message": "[task_1776056561717] [backend-exec] account=咩咩咩-1-597541905 failed: websocket closed"
-  },
-  {
-    "time": "8:15:07 PM",
-    "type": "success",
-    "message": "[task_1776056561717] batchPlan done success=0 failed=2"
-  },
-  {
-    "time": "8:15:40 PM",
-    "type": "info",
-    "message": "tasks updated via API, count=1"
-  },
-  {
-    "time": "8:16:00 PM",
-    "type": "success",
-    "message": "[task_1776056561717] batchPlan start account=咩咩-0-529938321 batchTasks=climbTower,batchLegacyClaim,resetBottles,batchAddHangUpTime,claimHangUpRewards"
-  },
-  {
-    "time": "8:16:00 PM",
-    "type": "info",
-    "message": "[task_1776056561717] [backend-exec] connecting account=咩咩-0-529938321"
-  },
-  {
-    "time": "8:16:01 PM",
-    "type": "info",
-    "message": "[task_1776056561717] [backend-exec] account=咩咩-0-529938321 task=climbTower start"
-  },
-  {
-    "time": "8:16:01 PM",
-    "type": "info",
-    "message": "[task_1776056561717] [backend-exec] account=咩咩-0-529938321 task=climbTower skipped: server error code=1500020 hint="
-  },
-  {
-    "time": "8:16:01 PM",
-    "type": "info",
-    "message": "[task_1776056561717] [backend-exec] account=咩咩-0-529938321 task=batchLegacyClaim start"
-  },
-  {
-    "time": "8:16:01 PM",
-    "type": "info",
-    "message": "[task_1776056561717] [backend-exec] account=咩咩-0-529938321 task=batchLegacyClaim skipped: server error code=12400000 hint="
-  },
-  {
-    "time": "8:16:01 PM",
-    "type": "info",
-    "message": "[task_1776056561717] [backend-exec] account=咩咩-0-529938321 task=resetBottles start"
-  },
-  {
-    "time": "8:16:02 PM",
-    "type": "success",
-    "message": "[task_1776056561717] [backend-exec] account=咩咩-0-529938321 task=resetBottles done"
-  },
-  {
-    "time": "8:16:02 PM",
-    "type": "info",
-    "message": "[task_1776056561717] [backend-exec] account=咩咩-0-529938321 task=batchAddHangUpTime start"
-  },
-  {
-    "time": "8:16:03 PM",
-    "type": "success",
-    "message": "[task_1776056561717] [backend-exec] account=咩咩-0-529938321 task=batchAddHangUpTime done"
-  },
-  {
-    "time": "8:16:03 PM",
-    "type": "info",
-    "message": "[task_1776056561717] [backend-exec] account=咩咩-0-529938321 task=claimHangUpRewards start"
-  },
-  {
-    "time": "8:16:03 PM",
-    "type": "success",
-    "message": "[task_1776056561717] [backend-exec] account=咩咩-0-529938321 task=claimHangUpRewards done"
-  },
-  {
-    "time": "8:16:03 PM",
-    "type": "info",
-    "message": "[task_1776056561717] [backend-exec] connecting account=咩咩咩-1-597541905"
-  },
-  {
-    "time": "8:16:04 PM",
-    "type": "info",
-    "message": "[task_1776056561717] [backend-exec] account=咩咩咩-1-597541905 task=climbTower start"
-  },
-  {
-    "time": "8:16:04 PM",
-    "type": "info",
-    "message": "[task_1776056561717] [backend-exec] account=咩咩咩-1-597541905 task=climbTower skipped: server error code=1500020 hint="
-  },
-  {
-    "time": "8:16:04 PM",
-    "type": "info",
-    "message": "[task_1776056561717] [backend-exec] account=咩咩咩-1-597541905 task=batchLegacyClaim start"
-  },
-  {
-    "time": "8:16:04 PM",
-    "type": "info",
-    "message": "[task_1776056561717] [backend-exec] account=咩咩咩-1-597541905 task=batchLegacyClaim skipped: server error code=200020 hint="
-  },
-  {
-    "time": "8:16:04 PM",
-    "type": "info",
-    "message": "[task_1776056561717] [backend-exec] account=咩咩咩-1-597541905 task=resetBottles start"
-  },
-  {
-    "time": "8:16:04 PM",
-    "type": "success",
-    "message": "[task_1776056561717] [backend-exec] account=咩咩咩-1-597541905 task=resetBottles done"
-  },
-  {
-    "time": "8:16:04 PM",
-    "type": "info",
-    "message": "[task_1776056561717] [backend-exec] account=咩咩咩-1-597541905 task=batchAddHangUpTime start"
-  },
-  {
-    "time": "8:16:06 PM",
-    "type": "success",
-    "message": "[task_1776056561717] [backend-exec] account=咩咩咩-1-597541905 task=batchAddHangUpTime done"
-  },
-  {
-    "time": "8:16:06 PM",
-    "type": "info",
-    "message": "[task_1776056561717] [backend-exec] account=咩咩咩-1-597541905 task=claimHangUpRewards start"
-  },
-  {
-    "time": "8:16:06 PM",
-    "type": "success",
-    "message": "[task_1776056561717] [backend-exec] account=咩咩咩-1-597541905 task=claimHangUpRewards done"
-  },
-  {
-    "time": "8:16:06 PM",
-    "type": "success",
-    "message": "[task_1776056561717] batchPlan done success=2 failed=0"
-  },
-  {
-    "time": "8:19:36 PM",
-    "type": "info",
-    "message": "background scheduler stopped (SIGTERM)"
-  },
-  {
-    "time": "8:19:36 PM",
-    "type": "info",
-    "message": "background scheduler started (tasks=/app/server/scheduler.tasks.json, log=/app/server/scheduler.log, tickMs=1000)"
-  },
-  {
-    "time": "8:19:36 PM",
-    "type": "info",
-    "message": "scheduler API started on :8090"
-  },
-  {
-    "time": "8:24:02 PM",
-    "type": "info",
-    "message": "background scheduler stopped (SIGTERM)"
-  },
-  {
-    "time": "8:24:02 PM",
-    "type": "info",
-    "message": "background scheduler started (tasks=/app/server/scheduler.tasks.json, log=/app/server/scheduler.log, tickMs=1000)"
-  },
-  {
-    "time": "8:24:02 PM",
-    "type": "info",
-    "message": "=== 定时任务调度服务已启动 ==="
-  },
-  {
-    "time": "8:24:02 PM",
-    "type": "info",
-    "message": "scheduler API started on :8090"
-  },
-  {
-    "time": "8:25:53 PM",
-    "type": "info",
-    "message": "background scheduler stopped (SIGTERM)"
-  },
-  {
-    "time": "8:25:53 PM",
-    "type": "info",
-    "message": "=== 定时任务调度服务已停止 ==="
-  },
-  {
-    "time": "8:25:54 PM",
-    "type": "info",
-    "message": "background scheduler started (tasks=/app/server/scheduler.tasks.json, log=/app/server/scheduler.log, tickMs=1000)"
-  },
-  {
-    "time": "8:25:54 PM",
-    "type": "info",
-    "message": "=== 定时任务调度服务已启动 ==="
-  },
-  {
-    "time": "8:25:54 PM",
-    "type": "info",
-    "message": "scheduler API started on :8090"
-  },
-  {
-    "time": "8:28:05 PM",
-    "type": "info",
-    "message": "background scheduler stopped (SIGTERM)"
-  },
-  {
-    "time": "8:28:05 PM",
-    "type": "info",
-    "message": "=== 定时任务调度服务已停止 ==="
-  },
-  {
-    "time": "8:28:05 PM",
-    "type": "info",
-    "message": "background scheduler started (tasks=/app/server/scheduler.tasks.json, log=/app/server/scheduler.log, tickMs=1000)"
-  },
-  {
-    "time": "8:28:05 PM",
-    "type": "info",
-    "message": "=== 定时任务调度服务已启动 ==="
-  },
-  {
-    "time": "8:28:05 PM",
-    "type": "info",
-    "message": "scheduler API started on :8090"
-  },
-  {
-    "time": "8:29:33 PM",
-    "type": "info",
-    "message": "background scheduler started (tasks=/app/server/scheduler.tasks.json, log=/app/server/scheduler.log, tickMs=1000)"
-  },
-  {
-    "time": "8:29:33 PM",
-    "type": "info",
-    "message": "=== 定时任务调度服务已启动 ==="
-  },
-  {
-    "time": "8:29:33 PM",
-    "type": "info",
-    "message": "scheduler API started on :8090"
-  },
-  {
-    "time": "8:29:49 PM",
-    "type": "info",
-    "message": "tasks updated via API, count=1"
-  },
-  {
-    "time": "8:30:00 PM",
-    "type": "success",
-    "message": "=== 开始批量任务执行 ==="
-  },
-  {
-    "time": "8:30:00 PM",
-    "type": "success",
-    "message": "批量任务账号=咩咩-0-529938321 任务=climbTower,batchLegacyClaim,resetBottles,batchAddHangUpTime,claimHangUpRewards"
-  },
-  {
-    "time": "8:30:00 PM",
-    "type": "info",
-    "message": "正在连接... (队列: 1/2)"
-  },
-  {
-    "time": "8:30:00 PM",
-    "type": "info",
-    "message": "=== 开始执行: 咩咩-0-529938321 ==="
-  },
-  {
-    "time": "8:30:00 PM",
+    "time": "9:59:34 PM",
     "type": "info",
     "message": "正在连接... (队列: 2/2)"
   },
   {
-    "time": "8:30:00 PM",
+    "time": "9:59:35 PM",
     "type": "info",
-    "message": "=== 开始执行: 咩咩咩-1-597541905 ==="
+    "message": "咩咩咩-1-597541905 执行加钟 4/4"
   },
   {
-    "time": "8:30:00 PM",
+    "time": "9:59:35 PM",
     "type": "info",
-    "message": "=== 开始爬塔: 咩咩咩-1-597541905 ==="
+    "message": "咩咩咩-2-689898963 执行加钟 1/4"
   },
   {
-    "time": "8:30:00 PM",
-    "type": "info",
-    "message": "=== 开始爬塔: 咩咩-0-529938321 ==="
-  },
-  {
-    "time": "8:30:00 PM",
-    "type": "info",
-    "message": "咩咩咩-1-597541905 爬塔第 1 次"
-  },
-  {
-    "time": "8:30:00 PM",
-    "type": "info",
-    "message": "咩咩-0-529938321 爬塔第 1 次"
-  },
-  {
-    "time": "8:30:00 PM",
-    "type": "warning",
-    "message": "咩咩咩-1-597541905 爬塔跳过: server error code=1500020 hint="
-  },
-  {
-    "time": "8:30:00 PM",
-    "type": "info",
-    "message": "=== 开始领取功法残卷: 咩咩咩-1-597541905 ==="
-  },
-  {
-    "time": "8:30:01 PM",
-    "type": "warning",
-    "message": "咩咩-0-529938321 爬塔跳过: server error code=1500020 hint="
-  },
-  {
-    "time": "8:30:01 PM",
-    "type": "info",
-    "message": "=== 开始领取功法残卷: 咩咩-0-529938321 ==="
-  },
-  {
-    "time": "8:30:01 PM",
-    "type": "warning",
-    "message": "咩咩咩-1-597541905 领取功法残卷跳过: server error code=200020 hint="
-  },
-  {
-    "time": "8:30:01 PM",
-    "type": "info",
-    "message": "=== 开始重置罐子: 咩咩咩-1-597541905 ==="
-  },
-  {
-    "time": "8:30:01 PM",
-    "type": "info",
-    "message": "咩咩咩-1-597541905 停止计时..."
-  },
-  {
-    "time": "8:30:01 PM",
+    "time": "9:59:35 PM",
     "type": "success",
-    "message": "=== 咩咩-0-529938321 成功领取功法残卷4，共有3183个"
+    "message": "=== 咩咩咩-1-597541905 加钟完成 ==="
   },
   {
-    "time": "8:30:01 PM",
-    "type": "info",
-    "message": "=== 开始重置罐子: 咩咩-0-529938321 ==="
-  },
-  {
-    "time": "8:30:01 PM",
-    "type": "info",
-    "message": "咩咩-0-529938321 停止计时..."
-  },
-  {
-    "time": "8:30:01 PM",
-    "type": "info",
-    "message": "咩咩咩-1-597541905 开始计时..."
-  },
-  {
-    "time": "8:30:01 PM",
-    "type": "success",
-    "message": "=== 咩咩咩-1-597541905 重置完成 ==="
-  },
-  {
-    "time": "8:30:01 PM",
-    "type": "info",
-    "message": "=== 开始一键加钟: 咩咩咩-1-597541905 ==="
-  },
-  {
-    "time": "8:30:01 PM",
-    "type": "info",
-    "message": "咩咩咩-1-597541905 挂机加钟 1/4"
-  },
-  {
-    "time": "8:30:01 PM",
-    "type": "info",
-    "message": "咩咩-0-529938321 开始计时..."
-  },
-  {
-    "time": "8:30:01 PM",
-    "type": "success",
-    "message": "=== 咩咩-0-529938321 重置完成 ==="
-  },
-  {
-    "time": "8:30:01 PM",
-    "type": "info",
-    "message": "=== 开始一键加钟: 咩咩-0-529938321 ==="
-  },
-  {
-    "time": "8:30:01 PM",
-    "type": "info",
-    "message": "咩咩-0-529938321 挂机加钟 1/4"
-  },
-  {
-    "time": "8:30:01 PM",
-    "type": "info",
-    "message": "咩咩咩-1-597541905 挂机加钟 2/4"
-  },
-  {
-    "time": "8:30:02 PM",
-    "type": "info",
-    "message": "咩咩-0-529938321 挂机加钟 2/4"
-  },
-  {
-    "time": "8:30:02 PM",
-    "type": "info",
-    "message": "咩咩咩-1-597541905 挂机加钟 3/4"
-  },
-  {
-    "time": "8:30:02 PM",
-    "type": "info",
-    "message": "咩咩-0-529938321 挂机加钟 3/4"
-  },
-  {
-    "time": "8:30:02 PM",
-    "type": "info",
-    "message": "咩咩咩-1-597541905 挂机加钟 4/4"
-  },
-  {
-    "time": "8:30:02 PM",
-    "type": "info",
-    "message": "咩咩-0-529938321 挂机加钟 4/4"
-  },
-  {
-    "time": "8:30:02 PM",
-    "type": "success",
-    "message": "咩咩咩-1-597541905 挂机加钟完成 ==="
-  },
-  {
-    "time": "8:30:02 PM",
-    "type": "info",
-    "message": "=== 开始领取挂机: 咩咩咩-1-597541905 ==="
-  },
-  {
-    "time": "8:30:02 PM",
-    "type": "info",
-    "message": "咩咩咩-1-597541905 领取挂机奖励"
-  },
-  {
-    "time": "8:30:02 PM",
-    "type": "success",
-    "message": "咩咩咩-1-597541905 领取挂机奖励完成 ==="
-  },
-  {
-    "time": "8:30:02 PM",
+    "time": "9:59:35 PM",
     "type": "info",
     "message": "咩咩咩-1-597541905 连接已关闭  (队列: 1/2)"
   },
   {
-    "time": "8:30:03 PM",
-    "type": "success",
-    "message": "咩咩-0-529938321 挂机加钟完成 ==="
-  },
-  {
-    "time": "8:30:03 PM",
-    "type": "info",
-    "message": "=== 开始领取挂机: 咩咩-0-529938321 ==="
-  },
-  {
-    "time": "8:30:03 PM",
-    "type": "info",
-    "message": "咩咩-0-529938321 领取挂机奖励"
-  },
-  {
-    "time": "8:30:03 PM",
-    "type": "success",
-    "message": "咩咩-0-529938321 领取挂机奖励完成 ==="
-  },
-  {
-    "time": "8:30:03 PM",
-    "type": "info",
-    "message": "咩咩-0-529938321 连接已关闭  (队列: 0/2)"
-  },
-  {
-    "time": "8:30:03 PM",
-    "type": "success",
-    "message": "批量任务执行完成 success=2 failed=0"
-  },
-  {
-    "time": "8:30:03 PM",
-    "type": "success",
-    "message": "=== 批量任务执行结束 ==="
-  },
-  {
-    "time": "8:46:37 PM",
-    "type": "info",
-    "message": "background scheduler stopped (SIGTERM)"
-  },
-  {
-    "time": "8:46:37 PM",
-    "type": "info",
-    "message": "=== 定时任务调度服务已停止 ==="
-  },
-  {
-    "time": "7:05:38 PM",
-    "type": "info",
-    "message": "background scheduler started (tasks=/app/server/scheduler.tasks.json, log=/app/server/scheduler.log, tickMs=1000)"
-  },
-  {
-    "time": "7:05:38 PM",
-    "type": "info",
-    "message": "=== 定时任务调度服务已启动 ==="
-  },
-  {
-    "time": "7:05:38 PM",
-    "type": "info",
-    "message": "scheduler API started on :8090"
-  },
-  {
-    "time": "7:06:25 PM",
-    "type": "info",
-    "message": "background scheduler stopped (SIGTERM)"
-  },
-  {
-    "time": "7:06:25 PM",
-    "type": "info",
-    "message": "=== 定时任务调度服务已停止 ==="
-  },
-  {
-    "time": "7:06:26 PM",
-    "type": "info",
-    "message": "background scheduler started (tasks=/app/server/scheduler.tasks.json, log=/app/server/scheduler.log, tickMs=1000)"
-  },
-  {
-    "time": "7:06:26 PM",
-    "type": "info",
-    "message": "=== 定时任务调度服务已启动 ==="
-  },
-  {
-    "time": "7:06:26 PM",
-    "type": "info",
-    "message": "scheduler API started on :8090"
-  },
-  {
-    "time": "7:19:16 PM",
-    "type": "info",
-    "message": "background scheduler stopped (SIGTERM)"
-  },
-  {
-    "time": "7:19:16 PM",
-    "type": "info",
-    "message": "=== 定时任务调度服务已停止 ==="
-  },
-  {
-    "time": "7:19:16 PM",
-    "type": "info",
-    "message": "background scheduler started (tasks=/app/server/scheduler.tasks.json, log=/app/server/scheduler.log, tickMs=1000)"
-  },
-  {
-    "time": "7:19:16 PM",
-    "type": "info",
-    "message": "=== 定时任务调度服务已启动 ==="
-  },
-  {
-    "time": "7:19:16 PM",
-    "type": "info",
-    "message": "scheduler API started on :8090"
-  },
-  {
-    "time": "7:22:19 PM",
-    "type": "info",
-    "message": "background scheduler started (tasks=/app/server/scheduler.tasks.json, log=/app/server/scheduler.log, tickMs=1000)"
-  },
-  {
-    "time": "7:22:19 PM",
-    "type": "info",
-    "message": "=== 定时任务调度服务已启动 ==="
-  },
-  {
-    "time": "7:22:19 PM",
-    "type": "info",
-    "message": "scheduler API started on :8090"
-  },
-  {
-    "time": "7:33:08 PM",
-    "type": "info",
-    "message": "tasks updated via API, count=1"
-  },
-  {
-    "time": "7:33:19 PM",
-    "type": "info",
-    "message": "tasks updated via API, count=1"
-  },
-  {
-    "time": "7:34:00 PM",
-    "type": "success",
-    "message": "=== 开始批量任务执行 ==="
-  },
-  {
-    "time": "7:34:00 PM",
-    "type": "success",
-    "message": "批量任务账号=咩咩-0-529938321 任务=climbTower,batchLegacyClaim,startBatch"
-  },
-  {
-    "time": "7:34:00 PM",
-    "type": "info",
-    "message": "正在连接... (队列: 1/2)"
-  },
-  {
-    "time": "7:34:00 PM",
-    "type": "info",
-    "message": "=== 开始执行: 咩咩-0-529938321 ==="
-  },
-  {
-    "time": "7:34:00 PM",
+    "time": "9:59:35 PM",
     "type": "info",
     "message": "正在连接... (队列: 2/2)"
   },
   {
-    "time": "7:34:00 PM",
+    "time": "9:59:36 PM",
     "type": "info",
-    "message": "=== 开始执行: 咩咩咩-1-597541905 ==="
+    "message": "咩咩咩-2-689898963 执行加钟 2/4"
   },
   {
-    "time": "7:34:01 PM",
-    "type": "warning",
-    "message": "咩咩-0-529938321 连接异常，正在重试 (1/1)..."
-  },
-  {
-    "time": "7:34:01 PM",
-    "type": "warning",
-    "message": "咩咩咩-1-597541905 连接异常，正在重试 (1/1)..."
-  },
-  {
-    "time": "7:34:01 PM",
+    "time": "9:59:36 PM",
     "type": "info",
-    "message": "=== 尝试重试: 咩咩-0-529938321 (第1次) ==="
+    "message": "咩咩咩-2-689898963 执行加钟 3/4"
   },
   {
-    "time": "7:34:01 PM",
+    "time": "9:59:37 PM",
     "type": "info",
-    "message": "=== 尝试重试: 咩咩咩-1-597541905 (第1次) ==="
+    "message": "咩咩-0-664382501 执行加钟 1/4"
   },
   {
-    "time": "7:34:01 PM",
-    "type": "error",
-    "message": "咩咩-0-529938321 执行失败: websocket closed"
-  },
-  {
-    "time": "7:34:01 PM",
+    "time": "9:59:37 PM",
     "type": "info",
-    "message": "咩咩-0-529938321 连接已关闭  (队列: 1/2)"
+    "message": "咩咩咩-2-689898963 执行加钟 4/4"
   },
   {
-    "time": "7:34:02 PM",
-    "type": "error",
-    "message": "咩咩咩-1-597541905 执行失败: websocket closed"
-  },
-  {
-    "time": "7:34:02 PM",
+    "time": "9:59:37 PM",
     "type": "info",
-    "message": "咩咩咩-1-597541905 连接已关闭  (队列: 0/2)"
+    "message": "咩咩-0-664382501 执行加钟 2/4"
   },
   {
-    "time": "7:34:02 PM",
+    "time": "9:59:38 PM",
     "type": "success",
-    "message": "批量任务执行完成 success=0 failed=2"
+    "message": "=== 咩咩咩-2-689898963 加钟完成 ==="
   },
   {
-    "time": "7:34:02 PM",
-    "type": "success",
-    "message": "=== 批量任务执行结束 ==="
-  },
-  {
-    "time": "8:46:55 PM",
+    "time": "9:59:38 PM",
     "type": "info",
-    "message": "background scheduler stopped (SIGTERM)"
+    "message": "咩咩咩-2-689898963 连接已关闭  (队列: 1/2)"
   },
   {
-    "time": "8:46:55 PM",
+    "time": "9:59:38 PM",
     "type": "info",
-    "message": "=== 定时任务调度服务已停止 ==="
+    "message": "咩咩-0-664382501 执行加钟 3/4"
   },
   {
-    "time": "8:46:55 PM",
-    "type": "info",
-    "message": "background scheduler started (tasks=/app/server/scheduler.tasks.json, log=/app/server/scheduler.log, tickMs=1000)"
-  },
-  {
-    "time": "8:46:55 PM",
-    "type": "info",
-    "message": "=== 定时任务调度服务已启动 ==="
-  },
-  {
-    "time": "8:46:55 PM",
-    "type": "info",
-    "message": "scheduler API started on :8090"
-  },
-  {
-    "time": "8:47:22 PM",
-    "type": "info",
-    "message": "background scheduler started (tasks=/app/server/scheduler.tasks.json, log=/app/server/scheduler.log, tickMs=1000)"
-  },
-  {
-    "time": "8:47:22 PM",
-    "type": "info",
-    "message": "=== 定时任务调度服务已启动 ==="
-  },
-  {
-    "time": "8:47:22 PM",
-    "type": "info",
-    "message": "scheduler API started on :8090"
-  },
-  {
-    "time": "8:48:22 PM",
-    "type": "info",
-    "message": "tasks updated via API, count=0"
-  },
-  {
-    "time": "8:48:37 PM",
-    "type": "info",
-    "message": "tasks updated via API, count=1"
-  },
-  {
-    "time": "8:50:00 PM",
-    "type": "success",
-    "message": "=== 开始批量任务执行 ==="
-  },
-  {
-    "time": "8:50:00 PM",
-    "type": "success",
-    "message": "批量任务账号=咩咩-0-529938321 任务=startBatch"
-  },
-  {
-    "time": "8:50:00 PM",
-    "type": "info",
-    "message": "正在连接... (队列: 1/2)"
-  },
-  {
-    "time": "8:50:00 PM",
-    "type": "info",
-    "message": "=== 开始执行: 咩咩-0-529938321 ==="
-  },
-  {
-    "time": "8:50:00 PM",
+    "time": "9:59:38 PM",
     "type": "info",
     "message": "正在连接... (队列: 2/2)"
   },
   {
-    "time": "8:50:00 PM",
+    "time": "9:59:38 PM",
     "type": "info",
-    "message": "=== 开始执行: 咩咩咩-1-597541905 ==="
+    "message": "咩咩-0-664382501 执行加钟 4/4"
   },
   {
-    "time": "8:50:01 PM",
-    "type": "info",
-    "message": "=== 开始执行: 咩咩-0-529938321 ==="
-  },
-  {
-    "time": "8:50:01 PM",
-    "type": "info",
-    "message": "正在获取角色信息..."
-  },
-  {
-    "time": "8:50:01 PM",
+    "time": "9:59:39 PM",
     "type": "success",
-    "message": "角色信息获取成功"
+    "message": "=== 咩咩-0-664382501 加钟完成 ==="
   },
   {
-    "time": "8:50:01 PM",
+    "time": "9:59:39 PM",
     "type": "info",
-    "message": "开始执行每日任务补差"
+    "message": "咩咩-0-664382501 连接已关闭  (队列: 1/2)"
   },
   {
-    "time": "8:50:01 PM",
-    "type": "info",
-    "message": "读取当前阵容信息..."
-  },
-  {
-    "time": "8:50:01 PM",
-    "type": "info",
-    "message": "执行: 获取当前阵容信息"
-  },
-  {
-    "time": "8:50:01 PM",
-    "type": "info",
-    "message": "=== 开始执行: 咩咩咩-1-597541905 ==="
-  },
-  {
-    "time": "8:50:01 PM",
+    "time": "9:59:39 PM",
     "type": "success",
-    "message": "获取当前阵容信息 - 成功"
+    "message": "批量加钟结束"
   },
   {
-    "time": "8:50:01 PM",
-    "type": "info",
-    "message": "当前阵容: 1"
-  },
-  {
-    "time": "8:50:01 PM",
-    "type": "info",
-    "message": "共有 38 个任务待执行"
-  },
-  {
-    "time": "8:50:01 PM",
-    "type": "info",
-    "message": "执行: 免费招募"
-  },
-  {
-    "time": "8:50:01 PM",
-    "type": "error",
-    "message": "[咩咩-0-529938321] 免费招募 - 失败: server error code=400030 hint="
-  },
-  {
-    "time": "8:50:01 PM",
-    "type": "error",
-    "message": "任务执行失败: 免费招募 - server error code=400030 hint="
-  },
-  {
-    "time": "8:50:01 PM",
-    "type": "info",
-    "message": "执行: 付费招募"
-  },
-  {
-    "time": "8:50:02 PM",
-    "type": "success",
-    "message": "获取当前阵容信息 - 成功"
-  },
-  {
-    "time": "8:50:02 PM",
-    "type": "info",
-    "message": "当前阵容: 1"
-  },
-  {
-    "time": "8:50:02 PM",
-    "type": "info",
-    "message": "共有 44 个任务待执行"
-  },
-  {
-    "time": "8:50:02 PM",
-    "type": "info",
-    "message": "执行: 免费招募"
-  },
-  {
-    "time": "8:50:02 PM",
-    "type": "error",
-    "message": "[咩咩咩-1-597541905] 免费招募 - 失败: server error code=400030 hint="
-  },
-  {
-    "time": "8:50:02 PM",
-    "type": "error",
-    "message": "任务执行失败: 免费招募 - server error code=400030 hint="
-  },
-  {
-    "time": "8:50:02 PM",
-    "type": "info",
-    "message": "执行: 付费招募"
-  },
-  {
-    "time": "8:50:02 PM",
-    "type": "success",
-    "message": "付费招募 - 成功"
-  },
-  {
-    "time": "8:50:02 PM",
-    "type": "info",
-    "message": "执行: 开启木质宝箱10个"
-  },
-  {
-    "time": "8:50:03 PM",
-    "type": "info",
-    "message": "执行: 领取挂机奖励"
-  },
-  {
-    "time": "8:50:03 PM",
-    "type": "success",
-    "message": "开启木质宝箱10个 - 成功"
-  },
-  {
-    "time": "8:50:03 PM",
-    "type": "success",
-    "message": "领取挂机奖励 - 成功"
-  },
-  {
-    "time": "8:50:03 PM",
-    "type": "info",
-    "message": "执行: 停止盐罐计时"
-  },
-  {
-    "time": "8:50:04 PM",
-    "type": "info",
-    "message": "执行: 挂机加钟 1"
-  },
-  {
-    "time": "8:50:04 PM",
-    "type": "success",
-    "message": "停止盐罐计时 - 成功"
-  },
-  {
-    "time": "8:50:04 PM",
-    "type": "success",
-    "message": "挂机加钟 1 - 成功"
-  },
-  {
-    "time": "8:50:05 PM",
-    "type": "info",
-    "message": "执行: 开始盐罐计时"
-  },
-  {
-    "time": "8:50:05 PM",
-    "type": "info",
-    "message": "执行: 挂机加钟 2"
-  },
-  {
-    "time": "8:50:05 PM",
-    "type": "success",
-    "message": "开始盐罐计时 - 成功"
-  },
-  {
-    "time": "8:50:05 PM",
-    "type": "success",
-    "message": "挂机加钟 2 - 成功"
-  },
-  {
-    "time": "8:50:06 PM",
-    "type": "info",
-    "message": "检查BOSS阵容配置..."
-  },
-  {
-    "time": "8:50:06 PM",
-    "type": "info",
-    "message": "执行: 获取阵容信息"
-  },
-  {
-    "time": "8:50:06 PM",
-    "type": "info",
-    "message": "执行: 挂机加钟 3"
-  },
-  {
-    "time": "8:50:06 PM",
-    "type": "success",
-    "message": "获取阵容信息 - 成功"
-  },
-  {
-    "time": "8:50:06 PM",
-    "type": "info",
-    "message": "当前阵容: 1"
-  },
-  {
-    "time": "8:50:06 PM",
-    "type": "success",
-    "message": "当前已是BOSS阵容1，无需切换"
-  },
-  {
-    "time": "8:50:07 PM",
-    "type": "success",
-    "message": "挂机加钟 3 - 成功"
-  },
-  {
-    "time": "8:50:07 PM",
-    "type": "info",
-    "message": "执行: 军团BOSS 1"
-  },
-  {
-    "time": "8:50:07 PM",
-    "type": "error",
-    "message": "[咩咩-0-529938321] 军团BOSS 1 - 失败: server error code=2300070 hint="
-  },
-  {
-    "time": "8:50:07 PM",
-    "type": "error",
-    "message": "任务执行失败: 军团BOSS 1/2 - server error code=2300070 hint="
-  },
-  {
-    "time": "8:50:07 PM",
-    "type": "info",
-    "message": "执行: 军团BOSS 2"
-  },
-  {
-    "time": "8:50:07 PM",
-    "type": "error",
-    "message": "[咩咩-0-529938321] 军团BOSS 2 - 失败: server error code=2300070 hint="
-  },
-  {
-    "time": "8:50:07 PM",
-    "type": "error",
-    "message": "任务执行失败: 军团BOSS 2/2 - server error code=2300070 hint="
-  },
-  {
-    "time": "8:50:07 PM",
-    "type": "info",
-    "message": "检查BOSS阵容配置..."
-  },
-  {
-    "time": "8:50:07 PM",
-    "type": "info",
-    "message": "执行: 获取阵容信息"
-  },
-  {
-    "time": "8:50:07 PM",
-    "type": "info",
-    "message": "执行: 挂机加钟 4"
-  },
-  {
-    "time": "8:50:08 PM",
-    "type": "success",
-    "message": "获取阵容信息 - 成功"
-  },
-  {
-    "time": "8:50:08 PM",
-    "type": "info",
-    "message": "当前阵容: 1"
-  },
-  {
-    "time": "8:50:08 PM",
-    "type": "success",
-    "message": "当前已是BOSS阵容1，无需切换"
-  },
-  {
-    "time": "8:50:08 PM",
-    "type": "success",
-    "message": "挂机加钟 4 - 成功"
-  },
-  {
-    "time": "8:50:08 PM",
-    "type": "info",
-    "message": "执行: 每日BOSS 1"
-  },
-  {
-    "time": "8:50:08 PM",
-    "type": "info",
-    "message": "执行: 开启木质宝箱10个"
-  },
-  {
-    "time": "8:50:09 PM",
-    "type": "success",
-    "message": "开启木质宝箱10个 - 成功"
-  },
-  {
-    "time": "8:50:09 PM",
-    "type": "success",
-    "message": "每日BOSS 1 - 成功"
-  },
-  {
-    "time": "8:50:09 PM",
-    "type": "info",
-    "message": "执行: 停止盐罐计时"
-  },
-  {
-    "time": "8:50:09 PM",
-    "type": "info",
-    "message": "执行: 每日BOSS 2"
-  },
-  {
-    "time": "8:50:10 PM",
-    "type": "success",
-    "message": "停止盐罐计时 - 成功"
-  },
-  {
-    "time": "8:50:10 PM",
-    "type": "success",
-    "message": "每日BOSS 2 - 成功"
-  },
-  {
-    "time": "8:50:10 PM",
-    "type": "info",
-    "message": "执行: 开始盐罐计时"
-  },
-  {
-    "time": "8:50:11 PM",
-    "type": "info",
-    "message": "执行: 每日BOSS 3"
-  },
-  {
-    "time": "8:50:11 PM",
-    "type": "success",
-    "message": "开始盐罐计时 - 成功"
-  },
-  {
-    "time": "8:50:11 PM",
-    "type": "success",
-    "message": "每日BOSS 3 - 成功"
-  },
-  {
-    "time": "8:50:11 PM",
-    "type": "info",
-    "message": "检查BOSS阵容配置..."
-  },
-  {
-    "time": "8:50:11 PM",
-    "type": "info",
-    "message": "执行: 获取阵容信息"
-  },
-  {
-    "time": "8:50:12 PM",
-    "type": "info",
-    "message": "执行: 福利签到"
-  },
-  {
-    "time": "8:50:12 PM",
-    "type": "error",
-    "message": "[咩咩-0-529938321] 福利签到 - 失败: server error code=400190 hint="
-  },
-  {
-    "time": "8:50:12 PM",
-    "type": "error",
-    "message": "任务执行失败: 福利签到 - server error code=400190 hint="
-  },
-  {
-    "time": "8:50:12 PM",
-    "type": "info",
-    "message": "执行: 俱乐部"
-  },
-  {
-    "time": "8:50:12 PM",
-    "type": "error",
-    "message": "[咩咩-0-529938321] 俱乐部 - 失败: server error code=2300070 hint="
-  },
-  {
-    "time": "8:50:12 PM",
-    "type": "error",
-    "message": "任务执行失败: 俱乐部 - server error code=2300070 hint="
-  },
-  {
-    "time": "8:50:12 PM",
-    "type": "info",
-    "message": "执行: 领取每日礼包"
-  },
-  {
-    "time": "8:50:12 PM",
-    "type": "success",
-    "message": "获取阵容信息 - 成功"
-  },
-  {
-    "time": "8:50:12 PM",
-    "type": "info",
-    "message": "当前阵容: 1"
-  },
-  {
-    "time": "8:50:12 PM",
-    "type": "success",
-    "message": "当前已是BOSS阵容1，无需切换"
-  },
-  {
-    "time": "8:50:12 PM",
-    "type": "error",
-    "message": "[咩咩-0-529938321] 领取每日礼包 - 失败: server error code=-10006 hint="
-  },
-  {
-    "time": "8:50:12 PM",
-    "type": "error",
-    "message": "任务执行失败: 领取每日礼包 - server error code=-10006 hint="
-  },
-  {
-    "time": "8:50:12 PM",
-    "type": "info",
-    "message": "执行: 领取每日免费奖励"
-  },
-  {
-    "time": "8:50:12 PM",
-    "type": "error",
-    "message": "[咩咩-0-529938321] 领取每日免费奖励 - 失败: server error code=12000116 hint="
-  },
-  {
-    "time": "8:50:12 PM",
-    "type": "error",
-    "message": "任务执行失败: 领取每日免费奖励 - server error code=12000116 hint="
-  },
-  {
-    "time": "8:50:12 PM",
-    "type": "info",
-    "message": "执行: 领取免费礼包"
-  },
-  {
-    "time": "8:50:12 PM",
-    "type": "error",
-    "message": "[咩咩-0-529938321] 领取免费礼包 - 失败: server error code=-10006 hint="
-  },
-  {
-    "time": "8:50:12 PM",
-    "type": "error",
-    "message": "任务执行失败: 领取免费礼包 - server error code=-10006 hint="
-  },
-  {
-    "time": "8:50:12 PM",
-    "type": "info",
-    "message": "执行: 领取永久卡礼包"
-  },
-  {
-    "time": "8:50:12 PM",
-    "type": "error",
-    "message": "[咩咩-0-529938321] 领取永久卡礼包 - 失败: server error code=1000020 hint="
-  },
-  {
-    "time": "8:50:12 PM",
-    "type": "error",
-    "message": "任务执行失败: 领取永久卡礼包 - server error code=1000020 hint="
-  },
-  {
-    "time": "8:50:12 PM",
-    "type": "info",
-    "message": "执行: 领取邮件奖励"
-  },
-  {
-    "time": "8:50:13 PM",
-    "type": "info",
-    "message": "执行: 军团BOSS 1"
-  },
-  {
-    "time": "8:50:13 PM",
-    "type": "error",
-    "message": "[咩咩咩-1-597541905] 军团BOSS 1 - 失败: server error code=2300070 hint="
-  },
-  {
-    "time": "8:50:13 PM",
-    "type": "error",
-    "message": "任务执行失败: 军团BOSS 1/2 - server error code=2300070 hint="
-  },
-  {
-    "time": "8:50:13 PM",
-    "type": "info",
-    "message": "执行: 军团BOSS 2"
-  },
-  {
-    "time": "8:50:13 PM",
-    "type": "error",
-    "message": "[咩咩咩-1-597541905] 军团BOSS 2 - 失败: server error code=2300070 hint="
-  },
-  {
-    "time": "8:50:13 PM",
-    "type": "error",
-    "message": "任务执行失败: 军团BOSS 2/2 - server error code=2300070 hint="
-  },
-  {
-    "time": "8:50:13 PM",
-    "type": "info",
-    "message": "检查BOSS阵容配置..."
-  },
-  {
-    "time": "8:50:13 PM",
-    "type": "info",
-    "message": "执行: 获取阵容信息"
-  },
-  {
-    "time": "8:50:13 PM",
-    "type": "success",
-    "message": "领取邮件奖励 - 成功"
-  },
-  {
-    "time": "8:50:13 PM",
-    "type": "success",
-    "message": "获取阵容信息 - 成功"
-  },
-  {
-    "time": "8:50:13 PM",
-    "type": "info",
-    "message": "当前阵容: 1"
-  },
-  {
-    "time": "8:50:13 PM",
-    "type": "success",
-    "message": "当前已是BOSS阵容1，无需切换"
-  },
-  {
-    "time": "8:50:13 PM",
-    "type": "info",
-    "message": "执行: 开始领取珍宝阁礼包"
-  },
-  {
-    "time": "8:50:14 PM",
-    "type": "info",
-    "message": "执行: 每日BOSS 1"
-  },
-  {
-    "time": "8:50:14 PM",
-    "type": "success",
-    "message": "开始领取珍宝阁礼包 - 成功"
-  },
-  {
-    "time": "8:50:14 PM",
-    "type": "info",
-    "message": "执行: 领取珍宝阁免费礼包"
-  },
-  {
-    "time": "8:50:14 PM",
-    "type": "success",
-    "message": "每日BOSS 1 - 成功"
-  },
-  {
-    "time": "8:50:14 PM",
-    "type": "error",
-    "message": "[咩咩-0-529938321] 领取珍宝阁免费礼包 - 失败: server error code=12000116 hint="
-  },
-  {
-    "time": "8:50:14 PM",
-    "type": "error",
-    "message": "任务执行失败: 领取珍宝阁免费礼包 - server error code=12000116 hint="
-  },
-  {
-    "time": "8:50:14 PM",
-    "type": "info",
-    "message": "执行: 领取免费扫荡卷 1"
-  },
-  {
-    "time": "8:50:15 PM",
-    "type": "error",
-    "message": "[咩咩-0-529938321] 领取免费扫荡卷 1 - 失败: server error code=3300050 hint="
-  },
-  {
-    "time": "8:50:15 PM",
-    "type": "error",
-    "message": "任务执行失败: 领取免费扫荡卷 1/3 - server error code=3300050 hint="
-  },
-  {
-    "time": "8:50:15 PM",
-    "type": "info",
-    "message": "执行: 领取免费扫荡卷 2"
-  },
-  {
-    "time": "8:50:15 PM",
-    "type": "error",
-    "message": "[咩咩-0-529938321] 领取免费扫荡卷 2 - 失败: server error code=3300050 hint="
-  },
-  {
-    "time": "8:50:15 PM",
-    "type": "error",
-    "message": "任务执行失败: 领取免费扫荡卷 2/3 - server error code=3300050 hint="
-  },
-  {
-    "time": "8:50:15 PM",
-    "type": "info",
-    "message": "执行: 领取免费扫荡卷 3"
-  },
-  {
-    "time": "8:50:15 PM",
-    "type": "error",
-    "message": "[咩咩-0-529938321] 领取免费扫荡卷 3 - 失败: server error code=3300050 hint="
-  },
-  {
-    "time": "8:50:15 PM",
-    "type": "error",
-    "message": "任务执行失败: 领取免费扫荡卷 3/3 - server error code=3300050 hint="
-  },
-  {
-    "time": "8:50:15 PM",
-    "type": "info",
-    "message": "检查初始阵容配置..."
-  },
-  {
-    "time": "8:50:15 PM",
-    "type": "info",
-    "message": "执行: 获取阵容信息"
-  },
-  {
-    "time": "8:50:15 PM",
-    "type": "info",
-    "message": "执行: 每日BOSS 2"
-  },
-  {
-    "time": "8:50:16 PM",
-    "type": "success",
-    "message": "获取阵容信息 - 成功"
-  },
-  {
-    "time": "8:50:16 PM",
-    "type": "info",
-    "message": "当前阵容: 1"
-  },
-  {
-    "time": "8:50:16 PM",
-    "type": "success",
-    "message": "当前已是初始阵容1，无需切换"
-  },
-  {
-    "time": "8:50:16 PM",
-    "type": "success",
-    "message": "每日BOSS 2 - 成功"
-  },
-  {
-    "time": "8:50:16 PM",
-    "type": "info",
-    "message": "执行: 领取任务奖励1"
-  },
-  {
-    "time": "8:50:16 PM",
-    "type": "error",
-    "message": "[咩咩-0-529938321] 领取任务奖励1 - 失败: server error code=700020 hint="
-  },
-  {
-    "time": "8:50:16 PM",
-    "type": "error",
-    "message": "任务执行失败: 领取任务奖励1 - server error code=700020 hint="
-  },
-  {
-    "time": "8:50:16 PM",
-    "type": "info",
-    "message": "执行: 领取任务奖励2"
-  },
-  {
-    "time": "8:50:16 PM",
-    "type": "info",
-    "message": "执行: 每日BOSS 3"
-  },
-  {
-    "time": "8:50:16 PM",
-    "type": "error",
-    "message": "[咩咩-0-529938321] 领取任务奖励2 - 失败: server error code=700020 hint="
-  },
-  {
-    "time": "8:50:16 PM",
-    "type": "error",
-    "message": "任务执行失败: 领取任务奖励2 - server error code=700020 hint="
-  },
-  {
-    "time": "8:50:16 PM",
-    "type": "info",
-    "message": "执行: 领取任务奖励3"
-  },
-  {
-    "time": "8:50:16 PM",
-    "type": "error",
-    "message": "[咩咩-0-529938321] 领取任务奖励3 - 失败: server error code=700020 hint="
-  },
-  {
-    "time": "8:50:16 PM",
-    "type": "error",
-    "message": "任务执行失败: 领取任务奖励3 - server error code=700020 hint="
-  },
-  {
-    "time": "8:50:16 PM",
-    "type": "info",
-    "message": "执行: 领取任务奖励4"
-  },
-  {
-    "time": "8:50:17 PM",
-    "type": "success",
-    "message": "领取任务奖励4 - 成功"
-  },
-  {
-    "time": "8:50:17 PM",
-    "type": "success",
-    "message": "每日BOSS 3 - 成功"
-  },
-  {
-    "time": "8:50:17 PM",
-    "type": "info",
-    "message": "执行: 领取任务奖励5"
-  },
-  {
-    "time": "8:50:17 PM",
-    "type": "info",
-    "message": "执行: 福利签到"
-  },
-  {
-    "time": "8:50:17 PM",
-    "type": "error",
-    "message": "[咩咩-0-529938321] 领取任务奖励5 - 失败: server error code=700020 hint="
-  },
-  {
-    "time": "8:50:17 PM",
-    "type": "error",
-    "message": "任务执行失败: 领取任务奖励5 - server error code=700020 hint="
-  },
-  {
-    "time": "8:50:17 PM",
-    "type": "info",
-    "message": "执行: 领取任务奖励6"
-  },
-  {
-    "time": "8:50:18 PM",
-    "type": "error",
-    "message": "[咩咩咩-1-597541905] 福利签到 - 失败: server error code=400190 hint="
-  },
-  {
-    "time": "8:50:18 PM",
-    "type": "error",
-    "message": "任务执行失败: 福利签到 - server error code=400190 hint="
-  },
-  {
-    "time": "8:50:18 PM",
-    "type": "info",
-    "message": "执行: 俱乐部"
-  },
-  {
-    "time": "8:50:18 PM",
-    "type": "error",
-    "message": "[咩咩-0-529938321] 领取任务奖励6 - 失败: server error code=700020 hint="
-  },
-  {
-    "time": "8:50:18 PM",
-    "type": "error",
-    "message": "任务执行失败: 领取任务奖励6 - server error code=700020 hint="
-  },
-  {
-    "time": "8:50:18 PM",
-    "type": "info",
-    "message": "执行: 领取任务奖励7"
-  },
-  {
-    "time": "8:50:18 PM",
-    "type": "error",
-    "message": "[咩咩咩-1-597541905] 俱乐部 - 失败: server error code=2300070 hint="
-  },
-  {
-    "time": "8:50:18 PM",
-    "type": "error",
-    "message": "任务执行失败: 俱乐部 - server error code=2300070 hint="
-  },
-  {
-    "time": "8:50:18 PM",
-    "type": "info",
-    "message": "执行: 领取每日礼包"
-  },
-  {
-    "time": "8:50:18 PM",
-    "type": "error",
-    "message": "[咩咩咩-1-597541905] 领取每日礼包 - 失败: server error code=-10006 hint="
-  },
-  {
-    "time": "8:50:18 PM",
-    "type": "error",
-    "message": "任务执行失败: 领取每日礼包 - server error code=-10006 hint="
-  },
-  {
-    "time": "8:50:18 PM",
-    "type": "info",
-    "message": "执行: 领取每日免费奖励"
-  },
-  {
-    "time": "8:50:18 PM",
-    "type": "error",
-    "message": "[咩咩咩-1-597541905] 领取每日免费奖励 - 失败: server error code=12000116 hint="
-  },
-  {
-    "time": "8:50:18 PM",
-    "type": "error",
-    "message": "任务执行失败: 领取每日免费奖励 - server error code=12000116 hint="
-  },
-  {
-    "time": "8:50:18 PM",
-    "type": "info",
-    "message": "执行: 领取免费礼包"
-  },
-  {
-    "time": "8:50:18 PM",
-    "type": "error",
-    "message": "[咩咩咩-1-597541905] 领取免费礼包 - 失败: server error code=-10006 hint="
-  },
-  {
-    "time": "8:50:18 PM",
-    "type": "error",
-    "message": "任务执行失败: 领取免费礼包 - server error code=-10006 hint="
-  },
-  {
-    "time": "8:50:18 PM",
-    "type": "info",
-    "message": "执行: 领取永久卡礼包"
-  },
-  {
-    "time": "8:50:18 PM",
-    "type": "error",
-    "message": "[咩咩咩-1-597541905] 领取永久卡礼包 - 失败: server error code=1000020 hint="
-  },
-  {
-    "time": "8:50:18 PM",
-    "type": "error",
-    "message": "任务执行失败: 领取永久卡礼包 - server error code=1000020 hint="
-  },
-  {
-    "time": "8:50:18 PM",
-    "type": "info",
-    "message": "执行: 领取邮件奖励"
-  },
-  {
-    "time": "8:50:18 PM",
-    "type": "success",
-    "message": "领取任务奖励7 - 成功"
-  },
-  {
-    "time": "8:50:18 PM",
-    "type": "success",
-    "message": "领取邮件奖励 - 成功"
-  },
-  {
-    "time": "8:50:19 PM",
-    "type": "info",
-    "message": "执行: 领取任务奖励8"
-  },
-  {
-    "time": "8:50:19 PM",
-    "type": "error",
-    "message": "[咩咩-0-529938321] 领取任务奖励8 - 失败: server error code=700020 hint="
-  },
-  {
-    "time": "8:50:19 PM",
-    "type": "error",
-    "message": "任务执行失败: 领取任务奖励8 - server error code=700020 hint="
-  },
-  {
-    "time": "8:50:19 PM",
-    "type": "info",
-    "message": "执行: 领取任务奖励9"
-  },
-  {
-    "time": "8:50:19 PM",
-    "type": "error",
-    "message": "[咩咩-0-529938321] 领取任务奖励9 - 失败: server error code=700020 hint="
-  },
-  {
-    "time": "8:50:19 PM",
-    "type": "error",
-    "message": "任务执行失败: 领取任务奖励9 - server error code=700020 hint="
-  },
-  {
-    "time": "8:50:19 PM",
-    "type": "info",
-    "message": "执行: 领取任务奖励10"
-  },
-  {
-    "time": "8:50:19 PM",
-    "type": "error",
-    "message": "[咩咩-0-529938321] 领取任务奖励10 - 失败: server error code=700020 hint="
-  },
-  {
-    "time": "8:50:19 PM",
-    "type": "error",
-    "message": "任务执行失败: 领取任务奖励10 - server error code=700020 hint="
-  },
-  {
-    "time": "8:50:19 PM",
-    "type": "info",
-    "message": "执行: 领取日常任务奖励"
-  },
-  {
-    "time": "8:50:19 PM",
-    "type": "info",
-    "message": "执行: 开始领取珍宝阁礼包"
-  },
-  {
-    "time": "8:50:19 PM",
-    "type": "success",
-    "message": "领取日常任务奖励 - 成功"
-  },
-  {
-    "time": "8:50:19 PM",
-    "type": "success",
-    "message": "开始领取珍宝阁礼包 - 成功"
-  },
-  {
-    "time": "8:50:20 PM",
-    "type": "info",
-    "message": "执行: 领取周常任务奖励"
-  },
-  {
-    "time": "8:50:20 PM",
-    "type": "info",
-    "message": "执行: 领取珍宝阁免费礼包"
-  },
-  {
-    "time": "8:50:20 PM",
-    "type": "error",
-    "message": "[咩咩咩-1-597541905] 领取珍宝阁免费礼包 - 失败: server error code=12000116 hint="
-  },
-  {
-    "time": "8:50:20 PM",
-    "type": "error",
-    "message": "任务执行失败: 领取珍宝阁免费礼包 - server error code=12000116 hint="
-  },
-  {
-    "time": "8:50:20 PM",
-    "type": "info",
-    "message": "执行: 领取免费扫荡卷 1"
-  },
-  {
-    "time": "8:50:20 PM",
-    "type": "error",
-    "message": "[咩咩咩-1-597541905] 领取免费扫荡卷 1 - 失败: server error code=3300050 hint="
-  },
-  {
-    "time": "8:50:20 PM",
-    "type": "error",
-    "message": "任务执行失败: 领取免费扫荡卷 1/3 - server error code=3300050 hint="
-  },
-  {
-    "time": "8:50:20 PM",
-    "type": "info",
-    "message": "执行: 领取免费扫荡卷 2"
-  },
-  {
-    "time": "8:50:20 PM",
-    "type": "error",
-    "message": "[咩咩咩-1-597541905] 领取免费扫荡卷 2 - 失败: server error code=3300050 hint="
-  },
-  {
-    "time": "8:50:20 PM",
-    "type": "error",
-    "message": "任务执行失败: 领取免费扫荡卷 2/3 - server error code=3300050 hint="
-  },
-  {
-    "time": "8:50:20 PM",
-    "type": "info",
-    "message": "执行: 领取免费扫荡卷 3"
-  },
-  {
-    "time": "8:50:20 PM",
-    "type": "error",
-    "message": "[咩咩咩-1-597541905] 领取免费扫荡卷 3 - 失败: server error code=3300050 hint="
-  },
-  {
-    "time": "8:50:20 PM",
-    "type": "error",
-    "message": "任务执行失败: 领取免费扫荡卷 3/3 - server error code=3300050 hint="
-  },
-  {
-    "time": "8:50:20 PM",
-    "type": "info",
-    "message": "执行: 黑市购买1次物品"
-  },
-  {
-    "time": "8:50:20 PM",
-    "type": "error",
-    "message": "[咩咩咩-1-597541905] 黑市购买1次物品 - 失败: server error code=1300050 hint="
-  },
-  {
-    "time": "8:50:20 PM",
-    "type": "error",
-    "message": "任务执行失败: 黑市购买1次物品 - server error code=1300050 hint="
-  },
-  {
-    "time": "8:50:20 PM",
-    "type": "info",
-    "message": "检查初始阵容配置..."
-  },
-  {
-    "time": "8:50:20 PM",
-    "type": "info",
-    "message": "执行: 获取阵容信息"
-  },
-  {
-    "time": "8:50:21 PM",
-    "type": "success",
-    "message": "领取周常任务奖励 - 成功"
-  },
-  {
-    "time": "8:50:21 PM",
-    "type": "success",
-    "message": "获取阵容信息 - 成功"
-  },
-  {
-    "time": "8:50:21 PM",
-    "type": "info",
-    "message": "当前阵容: 1"
-  },
-  {
-    "time": "8:50:21 PM",
-    "type": "success",
-    "message": "当前已是初始阵容1，无需切换"
-  },
-  {
-    "time": "8:50:21 PM",
-    "type": "info",
-    "message": "执行: 领取通行证奖励"
-  },
-  {
-    "time": "8:50:21 PM",
-    "type": "error",
-    "message": "[咩咩-0-529938321] 领取通行证奖励 - 失败: server error code=3500020 hint="
-  },
-  {
-    "time": "8:50:21 PM",
-    "type": "error",
-    "message": "任务执行失败: 领取通行证奖励 - server error code=3500020 hint="
-  },
-  {
-    "time": "8:50:21 PM",
-    "type": "success",
-    "message": "所有任务执行完成"
-  },
-  {
-    "time": "8:50:21 PM",
-    "type": "success",
-    "message": "咩咩-0-529938321 日常任务完成 ==="
-  },
-  {
-    "time": "8:50:21 PM",
-    "type": "info",
-    "message": "咩咩-0-529938321 连接已关闭  (队列: 1/2)"
-  },
-  {
-    "time": "8:50:21 PM",
-    "type": "info",
-    "message": "执行: 领取任务奖励1"
-  },
-  {
-    "time": "8:50:22 PM",
-    "type": "error",
-    "message": "[咩咩咩-1-597541905] 领取任务奖励1 - 失败: server error code=700020 hint="
-  },
-  {
-    "time": "8:50:22 PM",
-    "type": "error",
-    "message": "任务执行失败: 领取任务奖励1 - server error code=700020 hint="
-  },
-  {
-    "time": "8:50:22 PM",
-    "type": "info",
-    "message": "执行: 领取任务奖励2"
-  },
-  {
-    "time": "8:50:22 PM",
-    "type": "error",
-    "message": "[咩咩咩-1-597541905] 领取任务奖励2 - 失败: server error code=700020 hint="
-  },
-  {
-    "time": "8:50:22 PM",
-    "type": "error",
-    "message": "任务执行失败: 领取任务奖励2 - server error code=700020 hint="
-  },
-  {
-    "time": "8:50:22 PM",
-    "type": "info",
-    "message": "执行: 领取任务奖励3"
-  },
-  {
-    "time": "8:50:22 PM",
-    "type": "error",
-    "message": "[咩咩咩-1-597541905] 领取任务奖励3 - 失败: server error code=700020 hint="
-  },
-  {
-    "time": "8:50:22 PM",
-    "type": "error",
-    "message": "任务执行失败: 领取任务奖励3 - server error code=700020 hint="
-  },
-  {
-    "time": "8:50:22 PM",
-    "type": "info",
-    "message": "执行: 领取任务奖励4"
-  },
-  {
-    "time": "8:50:22 PM",
-    "type": "success",
-    "message": "领取任务奖励4 - 成功"
-  },
-  {
-    "time": "8:50:23 PM",
-    "type": "info",
-    "message": "执行: 领取任务奖励5"
-  },
-  {
-    "time": "8:50:23 PM",
-    "type": "error",
-    "message": "[咩咩咩-1-597541905] 领取任务奖励5 - 失败: server error code=700010 hint="
-  },
-  {
-    "time": "8:50:23 PM",
-    "type": "error",
-    "message": "任务执行失败: 领取任务奖励5 - server error code=700010 hint="
-  },
-  {
-    "time": "8:50:23 PM",
-    "type": "info",
-    "message": "执行: 领取任务奖励6"
-  },
-  {
-    "time": "8:50:23 PM",
-    "type": "error",
-    "message": "[咩咩咩-1-597541905] 领取任务奖励6 - 失败: server error code=700020 hint="
-  },
-  {
-    "time": "8:50:23 PM",
-    "type": "error",
-    "message": "任务执行失败: 领取任务奖励6 - server error code=700020 hint="
-  },
-  {
-    "time": "8:50:23 PM",
-    "type": "info",
-    "message": "执行: 领取任务奖励7"
-  },
-  {
-    "time": "8:50:23 PM",
-    "type": "success",
-    "message": "领取任务奖励7 - 成功"
-  },
-  {
-    "time": "8:50:24 PM",
-    "type": "info",
-    "message": "执行: 领取任务奖励8"
-  },
-  {
-    "time": "8:50:24 PM",
-    "type": "error",
-    "message": "[咩咩咩-1-597541905] 领取任务奖励8 - 失败: server error code=700020 hint="
-  },
-  {
-    "time": "8:50:24 PM",
-    "type": "error",
-    "message": "任务执行失败: 领取任务奖励8 - server error code=700020 hint="
-  },
-  {
-    "time": "8:50:24 PM",
-    "type": "info",
-    "message": "执行: 领取任务奖励9"
-  },
-  {
-    "time": "8:50:24 PM",
-    "type": "error",
-    "message": "[咩咩咩-1-597541905] 领取任务奖励9 - 失败: server error code=700010 hint="
-  },
-  {
-    "time": "8:50:24 PM",
-    "type": "error",
-    "message": "任务执行失败: 领取任务奖励9 - server error code=700010 hint="
-  },
-  {
-    "time": "8:50:24 PM",
-    "type": "info",
-    "message": "执行: 领取任务奖励10"
-  },
-  {
-    "time": "8:50:24 PM",
-    "type": "error",
-    "message": "[咩咩咩-1-597541905] 领取任务奖励10 - 失败: server error code=700020 hint="
-  },
-  {
-    "time": "8:50:24 PM",
-    "type": "error",
-    "message": "任务执行失败: 领取任务奖励10 - server error code=700020 hint="
-  },
-  {
-    "time": "8:50:24 PM",
-    "type": "info",
-    "message": "执行: 领取日常任务奖励"
-  },
-  {
-    "time": "8:50:25 PM",
-    "type": "success",
-    "message": "领取日常任务奖励 - 成功"
-  },
-  {
-    "time": "8:50:25 PM",
-    "type": "info",
-    "message": "执行: 领取周常任务奖励"
-  },
-  {
-    "time": "8:50:25 PM",
-    "type": "error",
-    "message": "[咩咩咩-1-597541905] 领取周常任务奖励 - 失败: server error code=200020 hint="
-  },
-  {
-    "time": "8:50:25 PM",
-    "type": "error",
-    "message": "任务执行失败: 领取周常任务奖励 - server error code=200020 hint="
-  },
-  {
-    "time": "8:50:25 PM",
-    "type": "info",
-    "message": "执行: 领取通行证奖励"
-  },
-  {
-    "time": "8:50:25 PM",
-    "type": "error",
-    "message": "[咩咩咩-1-597541905] 领取通行证奖励 - 失败: server error code=3500020 hint="
-  },
-  {
-    "time": "8:50:25 PM",
-    "type": "error",
-    "message": "任务执行失败: 领取通行证奖励 - server error code=3500020 hint="
-  },
-  {
-    "time": "8:50:25 PM",
-    "type": "success",
-    "message": "所有任务执行完成"
-  },
-  {
-    "time": "8:50:25 PM",
-    "type": "success",
-    "message": "咩咩咩-1-597541905 日常任务完成 ==="
-  },
-  {
-    "time": "8:50:25 PM",
-    "type": "info",
-    "message": "咩咩咩-1-597541905 连接已关闭  (队列: 0/2)"
-  },
-  {
-    "time": "8:50:25 PM",
-    "type": "success",
-    "message": "批量任务执行完成 success=2 failed=0"
-  },
-  {
-    "time": "8:50:25 PM",
-    "type": "success",
-    "message": "=== 批量任务执行结束 ==="
-  },
-  {
-    "time": "8:52:57 PM",
-    "type": "info",
-    "message": "tasks updated via API, count=1"
-  },
-  {
-    "time": "8:54:00 PM",
-    "type": "success",
-    "message": "=== 开始批量任务执行 ==="
-  },
-  {
-    "time": "8:54:00 PM",
-    "type": "success",
-    "message": "批量任务账号=咩咩-0-529938321 任务=batchAddHangUpTime,claimHangUpRewards,resetBottles,climbTower"
-  },
-  {
-    "time": "8:54:00 PM",
-    "type": "info",
-    "message": "正在连接... (队列: 1/2)"
-  },
-  {
-    "time": "8:54:00 PM",
-    "type": "info",
-    "message": "=== 开始执行: 咩咩-0-529938321 ==="
-  },
-  {
-    "time": "8:54:01 PM",
-    "type": "info",
-    "message": "正在连接... (队列: 2/2)"
-  },
-  {
-    "time": "8:54:01 PM",
-    "type": "info",
-    "message": "=== 开始执行: 咩咩咩-1-597541905 ==="
-  },
-  {
-    "time": "8:54:01 PM",
-    "type": "info",
-    "message": "=== 开始一键加钟: 咩咩-0-529938321 ==="
-  },
-  {
-    "time": "8:54:01 PM",
-    "type": "info",
-    "message": "咩咩-0-529938321 挂机加钟 1/4"
-  },
-  {
-    "time": "8:54:01 PM",
-    "type": "info",
-    "message": "咩咩-0-529938321 挂机加钟 2/4"
-  },
-  {
-    "time": "8:54:01 PM",
-    "type": "info",
-    "message": "=== 开始一键加钟: 咩咩咩-1-597541905 ==="
-  },
-  {
-    "time": "8:54:01 PM",
-    "type": "info",
-    "message": "咩咩咩-1-597541905 挂机加钟 1/4"
-  },
-  {
-    "time": "8:54:01 PM",
-    "type": "info",
-    "message": "咩咩-0-529938321 挂机加钟 3/4"
-  },
-  {
-    "time": "8:54:01 PM",
-    "type": "info",
-    "message": "咩咩咩-1-597541905 挂机加钟 2/4"
-  },
-  {
-    "time": "8:54:02 PM",
-    "type": "info",
-    "message": "咩咩-0-529938321 挂机加钟 4/4"
-  },
-  {
-    "time": "8:54:02 PM",
-    "type": "info",
-    "message": "咩咩咩-1-597541905 挂机加钟 3/4"
-  },
-  {
-    "time": "8:54:02 PM",
-    "type": "info",
-    "message": "咩咩咩-1-597541905 挂机加钟 4/4"
-  },
-  {
-    "time": "8:54:02 PM",
-    "type": "success",
-    "message": "咩咩-0-529938321 挂机加钟完成 ==="
-  },
-  {
-    "time": "8:54:02 PM",
-    "type": "info",
-    "message": "=== 开始领取挂机: 咩咩-0-529938321 ==="
-  },
-  {
-    "time": "8:54:02 PM",
-    "type": "info",
-    "message": "咩咩-0-529938321 领取挂机奖励"
-  },
-  {
-    "time": "8:54:02 PM",
-    "type": "success",
-    "message": "咩咩-0-529938321 领取挂机奖励完成 ==="
-  },
-  {
-    "time": "8:54:02 PM",
+    "time": "9:59:39 PM",
     "type": "info",
     "message": "=== 开始重置罐子: 咩咩-0-529938321 ==="
   },
   {
-    "time": "8:54:02 PM",
+    "time": "9:59:39 PM",
     "type": "info",
     "message": "咩咩-0-529938321 停止计时..."
   },
   {
-    "time": "8:54:02 PM",
-    "type": "success",
-    "message": "咩咩咩-1-597541905 挂机加钟完成 ==="
-  },
-  {
-    "time": "8:54:02 PM",
+    "time": "9:59:39 PM",
     "type": "info",
-    "message": "=== 开始领取挂机: 咩咩咩-1-597541905 ==="
+    "message": "正在连接... (队列: 2/2)"
   },
   {
-    "time": "8:54:02 PM",
-    "type": "info",
-    "message": "咩咩咩-1-597541905 领取挂机奖励"
-  },
-  {
-    "time": "8:54:02 PM",
-    "type": "success",
-    "message": "咩咩咩-1-597541905 领取挂机奖励完成 ==="
-  },
-  {
-    "time": "8:54:02 PM",
-    "type": "info",
-    "message": "=== 开始重置罐子: 咩咩咩-1-597541905 ==="
-  },
-  {
-    "time": "8:54:02 PM",
-    "type": "info",
-    "message": "咩咩咩-1-597541905 停止计时..."
-  },
-  {
-    "time": "8:54:03 PM",
+    "time": "9:59:40 PM",
     "type": "info",
     "message": "咩咩-0-529938321 开始计时..."
   },
   {
-    "time": "8:54:03 PM",
+    "time": "9:59:40 PM",
     "type": "success",
     "message": "=== 咩咩-0-529938321 重置完成 ==="
   },
   {
-    "time": "8:54:03 PM",
-    "type": "info",
-    "message": "=== 开始爬塔: 咩咩-0-529938321 ==="
-  },
-  {
-    "time": "8:54:03 PM",
-    "type": "info",
-    "message": "咩咩-0-529938321 爬塔第 1 次"
-  },
-  {
-    "time": "8:54:03 PM",
-    "type": "info",
-    "message": "咩咩咩-1-597541905 开始计时..."
-  },
-  {
-    "time": "8:54:03 PM",
-    "type": "success",
-    "message": "=== 咩咩咩-1-597541905 重置完成 ==="
-  },
-  {
-    "time": "8:54:03 PM",
-    "type": "info",
-    "message": "=== 开始爬塔: 咩咩咩-1-597541905 ==="
-  },
-  {
-    "time": "8:54:03 PM",
-    "type": "info",
-    "message": "咩咩咩-1-597541905 爬塔第 1 次"
-  },
-  {
-    "time": "8:54:03 PM",
-    "type": "info",
-    "message": "咩咩-0-529938321 爬塔第 2 次"
-  },
-  {
-    "time": "8:54:03 PM",
-    "type": "info",
-    "message": "咩咩咩-1-597541905 爬塔第 2 次"
-  },
-  {
-    "time": "8:54:04 PM",
-    "type": "info",
-    "message": "咩咩-0-529938321 爬塔第 3 次"
-  },
-  {
-    "time": "8:54:04 PM",
-    "type": "info",
-    "message": "咩咩咩-1-597541905 爬塔第 3 次"
-  },
-  {
-    "time": "8:54:04 PM",
-    "type": "info",
-    "message": "咩咩-0-529938321 爬塔第 4 次"
-  },
-  {
-    "time": "8:54:05 PM",
-    "type": "info",
-    "message": "咩咩咩-1-597541905 爬塔第 4 次"
-  },
-  {
-    "time": "8:54:05 PM",
-    "type": "info",
-    "message": "咩咩-0-529938321 爬塔第 5 次"
-  },
-  {
-    "time": "8:54:05 PM",
-    "type": "info",
-    "message": "咩咩咩-1-597541905 爬塔第 5 次"
-  },
-  {
-    "time": "8:54:06 PM",
-    "type": "success",
-    "message": "咩咩-0-529938321 爬塔完成 ==="
-  },
-  {
-    "time": "8:54:06 PM",
+    "time": "9:59:40 PM",
     "type": "info",
     "message": "咩咩-0-529938321 连接已关闭  (队列: 1/2)"
   },
   {
-    "time": "8:54:06 PM",
-    "type": "success",
-    "message": "咩咩咩-1-597541905 爬塔完成 ==="
+    "time": "9:59:40 PM",
+    "type": "info",
+    "message": "=== 开始重置罐子: 咩咩咩-1-597541905 ==="
   },
   {
-    "time": "8:54:06 PM",
+    "time": "9:59:40 PM",
+    "type": "info",
+    "message": "咩咩咩-1-597541905 停止计时..."
+  },
+  {
+    "time": "9:59:40 PM",
+    "type": "info",
+    "message": "正在连接... (队列: 2/2)"
+  },
+  {
+    "time": "9:59:41 PM",
+    "type": "info",
+    "message": "咩咩咩-1-597541905 开始计时..."
+  },
+  {
+    "time": "9:59:41 PM",
+    "type": "success",
+    "message": "=== 咩咩咩-1-597541905 重置完成 ==="
+  },
+  {
+    "time": "9:59:41 PM",
+    "type": "info",
+    "message": "咩咩咩-1-597541905 连接已关闭  (队列: 1/2)"
+  },
+  {
+    "time": "9:59:41 PM",
+    "type": "info",
+    "message": "=== 开始重置罐子: 咩咩咩-2-689898963 ==="
+  },
+  {
+    "time": "9:59:41 PM",
+    "type": "info",
+    "message": "咩咩咩-2-689898963 停止计时..."
+  },
+  {
+    "time": "9:59:41 PM",
+    "type": "info",
+    "message": "正在连接... (队列: 2/2)"
+  },
+  {
+    "time": "9:59:42 PM",
+    "type": "info",
+    "message": "咩咩咩-2-689898963 开始计时..."
+  },
+  {
+    "time": "9:59:42 PM",
+    "type": "success",
+    "message": "=== 咩咩咩-2-689898963 重置完成 ==="
+  },
+  {
+    "time": "9:59:42 PM",
+    "type": "info",
+    "message": "咩咩咩-2-689898963 连接已关闭  (队列: 1/2)"
+  },
+  {
+    "time": "9:59:42 PM",
+    "type": "info",
+    "message": "=== 开始重置罐子: 咩咩-0-664382501 ==="
+  },
+  {
+    "time": "9:59:42 PM",
+    "type": "info",
+    "message": "咩咩-0-664382501 停止计时..."
+  },
+  {
+    "time": "9:59:43 PM",
+    "type": "info",
+    "message": "咩咩-0-664382501 开始计时..."
+  },
+  {
+    "time": "9:59:43 PM",
+    "type": "success",
+    "message": "=== 咩咩-0-664382501 重置完成 ==="
+  },
+  {
+    "time": "9:59:43 PM",
+    "type": "info",
+    "message": "咩咩-0-664382501 连接已关闭  (队列: 0/2)"
+  },
+  {
+    "time": "9:59:43 PM",
+    "type": "success",
+    "message": "批量重置罐子结束"
+  },
+  {
+    "time": "9:59:43 PM",
+    "type": "success",
+    "message": "=== 定时任务执行完成: test ==="
+  },
+  {
+    "time": "10:00:16 PM",
+    "type": "info",
+    "message": "background scheduler stopped (SIGTERM)"
+  },
+  {
+    "time": "10:00:16 PM",
+    "type": "info",
+    "message": "=== 定时任务调度服务已停止 ==="
+  },
+  {
+    "time": "10:00:17 PM",
+    "type": "info",
+    "message": "background scheduler started (tasks=/app/server/scheduler.tasks.json, log=/app/server/scheduler.log, tickMs=1000)"
+  },
+  {
+    "time": "10:00:17 PM",
+    "type": "info",
+    "message": "=== 定时任务调度服务已启动 ==="
+  },
+  {
+    "time": "10:00:17 PM",
+    "type": "info",
+    "message": "=== 开始执行定时任务: test ==="
+  },
+  {
+    "time": "10:00:17 PM",
+    "type": "info",
+    "message": "=== 开始验证定时任务 test 的依赖 ==="
+  },
+  {
+    "time": "10:00:17 PM",
+    "type": "info",
+    "message": "✅ localStorage可用"
+  },
+  {
+    "time": "10:00:17 PM",
+    "type": "info",
+    "message": "✅ 将使用 4 个账号执行任务"
+  },
+  {
+    "time": "10:00:17 PM",
+    "type": "success",
+    "message": "=== 定时任务 test 的依赖验证通过，将执行 4 个账号 ==="
+  },
+  {
+    "time": "10:00:17 PM",
+    "type": "info",
+    "message": "执行任务: 免费领取珍宝阁"
+  },
+  {
+    "time": "10:00:17 PM",
+    "type": "info",
+    "message": "=== 开始免费领取珍宝阁: 咩咩-0-529938321 ==="
+  },
+  {
+    "time": "10:00:17 PM",
+    "type": "info",
+    "message": "=== 开始免费领取珍宝阁: 咩咩咩-1-597541905 ==="
+  },
+  {
+    "time": "10:00:17 PM",
+    "type": "info",
+    "message": "=== 开始免费领取珍宝阁: 咩咩咩-2-689898963 ==="
+  },
+  {
+    "time": "10:00:17 PM",
+    "type": "info",
+    "message": "=== 开始免费领取珍宝阁: 咩咩-0-664382501 ==="
+  },
+  {
+    "time": "10:00:17 PM",
+    "type": "info",
+    "message": "执行任务: 一键收车"
+  },
+  {
+    "time": "10:00:17 PM",
+    "type": "info",
+    "message": "=== 开始一键收车: 咩咩-0-529938321 ==="
+  },
+  {
+    "time": "10:00:17 PM",
+    "type": "info",
+    "message": "=== 开始一键收车: 咩咩咩-1-597541905 ==="
+  },
+  {
+    "time": "10:00:17 PM",
+    "type": "info",
+    "message": "=== 开始一键收车: 咩咩咩-2-689898963 ==="
+  },
+  {
+    "time": "10:00:17 PM",
+    "type": "info",
+    "message": "=== 开始一键收车: 咩咩-0-664382501 ==="
+  },
+  {
+    "time": "10:00:17 PM",
+    "type": "info",
+    "message": "执行任务: 智能发车"
+  },
+  {
+    "time": "10:00:17 PM",
+    "type": "info",
+    "message": "=== 开始智能发车: 咩咩-0-529938321 ==="
+  },
+  {
+    "time": "10:00:17 PM",
+    "type": "info",
+    "message": "=== 开始智能发车: 咩咩咩-1-597541905 ==="
+  },
+  {
+    "time": "10:00:17 PM",
+    "type": "info",
+    "message": "=== 开始智能发车: 咩咩咩-2-689898963 ==="
+  },
+  {
+    "time": "10:00:17 PM",
+    "type": "info",
+    "message": "=== 开始智能发车: 咩咩-0-664382501 ==="
+  },
+  {
+    "time": "10:00:17 PM",
+    "type": "info",
+    "message": "执行任务: 一键加钟"
+  },
+  {
+    "time": "10:00:17 PM",
+    "type": "info",
+    "message": "=== 开始一键加钟: 咩咩-0-529938321 ==="
+  },
+  {
+    "time": "10:00:17 PM",
+    "type": "info",
+    "message": "=== 开始一键加钟: 咩咩咩-1-597541905 ==="
+  },
+  {
+    "time": "10:00:17 PM",
+    "type": "info",
+    "message": "=== 开始一键加钟: 咩咩咩-2-689898963 ==="
+  },
+  {
+    "time": "10:00:17 PM",
+    "type": "info",
+    "message": "=== 开始一键加钟: 咩咩-0-664382501 ==="
+  },
+  {
+    "time": "10:00:17 PM",
+    "type": "info",
+    "message": "执行任务: 重置罐子"
+  },
+  {
+    "time": "10:00:17 PM",
+    "type": "info",
+    "message": "正在连接... (队列: 2/2)"
+  },
+  {
+    "time": "10:00:17 PM",
+    "type": "info",
+    "message": "scheduler API started on :8090"
+  },
+  {
+    "time": "10:00:18 PM",
+    "type": "info",
+    "message": "咩咩咩-1-597541905 发送珍宝阁免费领取请求..."
+  },
+  {
+    "time": "10:00:18 PM",
+    "type": "info",
+    "message": "咩咩-0-529938321 发送珍宝阁免费领取请求..."
+  },
+  {
+    "time": "10:00:18 PM",
+    "type": "error",
+    "message": "咩咩-0-529938321 珍宝阁领取过程出错: 服务器错误: 12000116 - 未知错误"
+  },
+  {
+    "time": "10:00:18 PM",
+    "type": "info",
+    "message": "咩咩-0-529938321 连接已关闭  (队列: 1/2)"
+  },
+  {
+    "time": "10:00:18 PM",
+    "type": "error",
+    "message": "咩咩咩-1-597541905 珍宝阁领取过程出错: 服务器错误: 12000116 - 未知错误"
+  },
+  {
+    "time": "10:00:18 PM",
     "type": "info",
     "message": "咩咩咩-1-597541905 连接已关闭  (队列: 0/2)"
   },
   {
-    "time": "8:54:06 PM",
-    "type": "success",
-    "message": "批量任务执行完成 success=2 failed=0"
+    "time": "10:00:19 PM",
+    "type": "info",
+    "message": "正在连接... (队列: 1/2)"
   },
   {
-    "time": "8:54:06 PM",
-    "type": "success",
-    "message": "=== 批量任务执行结束 ==="
+    "time": "10:00:19 PM",
+    "type": "info",
+    "message": "正在连接... (队列: 2/2)"
   },
   {
-    "time": "20:55:46",
+    "time": "10:00:19 PM",
+    "type": "info",
+    "message": "咩咩咩-2-689898963 发送珍宝阁免费领取请求..."
+  },
+  {
+    "time": "10:00:19 PM",
+    "type": "error",
+    "message": "咩咩咩-2-689898963 珍宝阁领取过程出错: 服务器错误: 200160 - 未知错误"
+  },
+  {
+    "time": "10:00:19 PM",
+    "type": "info",
+    "message": "咩咩咩-2-689898963 连接已关闭  (队列: 1/2)"
+  },
+  {
+    "time": "10:00:20 PM",
+    "type": "info",
+    "message": "正在连接... (队列: 2/2)"
+  },
+  {
+    "time": "10:00:20 PM",
+    "type": "info",
+    "message": "咩咩-0-664382501 发送珍宝阁免费领取请求..."
+  },
+  {
+    "time": "10:00:20 PM",
+    "type": "error",
+    "message": "咩咩-0-664382501 珍宝阁领取过程出错: 服务器错误: 12000116 - 未知错误"
+  },
+  {
+    "time": "10:00:20 PM",
+    "type": "info",
+    "message": "咩咩-0-664382501 连接已关闭  (队列: 1/2)"
+  },
+  {
+    "time": "10:00:20 PM",
+    "type": "info",
+    "message": "咩咩-0-529938321 获取车辆信息..."
+  },
+  {
+    "time": "10:00:21 PM",
+    "type": "error",
+    "message": "咩咩-0-529938321 收车失败: 服务器错误: 2300070 - 未知错误"
+  },
+  {
+    "time": "10:00:21 PM",
+    "type": "info",
+    "message": "咩咩-0-529938321 连接已关闭  (队列: 0/2)"
+  },
+  {
+    "time": "10:00:21 PM",
+    "type": "info",
+    "message": "正在连接... (队列: 1/2)"
+  },
+  {
+    "time": "10:00:21 PM",
+    "type": "info",
+    "message": "正在连接... (队列: 2/2)"
+  },
+  {
+    "time": "10:00:21 PM",
+    "type": "info",
+    "message": "咩咩咩-2-689898963 获取车辆信息..."
+  },
+  {
+    "time": "10:00:21 PM",
+    "type": "info",
+    "message": "咩咩咩-1-597541905 获取车辆信息..."
+  },
+  {
+    "time": "10:00:21 PM",
+    "type": "error",
+    "message": "咩咩咩-2-689898963 收车失败: 服务器错误: 2300070 - 未知错误"
+  },
+  {
+    "time": "10:00:21 PM",
+    "type": "info",
+    "message": "咩咩咩-2-689898963 连接已关闭  (队列: 1/2)"
+  },
+  {
+    "time": "10:00:21 PM",
+    "type": "error",
+    "message": "咩咩咩-1-597541905 收车失败: 服务器错误: 2300070 - 未知错误"
+  },
+  {
+    "time": "10:00:21 PM",
+    "type": "info",
+    "message": "咩咩咩-1-597541905 连接已关闭  (队列: 0/2)"
+  },
+  {
+    "time": "10:00:22 PM",
+    "type": "info",
+    "message": "正在连接... (队列: 1/2)"
+  },
+  {
+    "time": "10:00:22 PM",
+    "type": "info",
+    "message": "正在连接... (队列: 2/2)"
+  },
+  {
+    "time": "10:00:22 PM",
+    "type": "info",
+    "message": "咩咩-0-664382501 获取车辆信息..."
+  },
+  {
+    "time": "10:00:22 PM",
+    "type": "info",
+    "message": "咩咩-0-529938321 获取车辆信息..."
+  },
+  {
+    "time": "10:00:22 PM",
+    "type": "info",
+    "message": "咩咩-0-664382501 没有可收取的车辆"
+  },
+  {
+    "time": "10:00:22 PM",
+    "type": "success",
+    "message": "=== 咩咩-0-664382501 收车完成，共收取 0 辆 ==="
+  },
+  {
+    "time": "10:00:22 PM",
+    "type": "info",
+    "message": "咩咩-0-664382501 连接已关闭  (队列: 1/2)"
+  },
+  {
+    "time": "10:00:22 PM",
+    "type": "success",
+    "message": "批量一键收车结束"
+  },
+  {
+    "time": "10:00:22 PM",
+    "type": "error",
+    "message": "智能发车失败: 服务器错误: 2300070 - 未知错误"
+  },
+  {
+    "time": "10:00:22 PM",
+    "type": "info",
+    "message": "咩咩-0-529938321 连接已关闭  (队列: 0/2)"
+  },
+  {
+    "time": "10:00:23 PM",
+    "type": "info",
+    "message": "正在连接... (队列: 1/2)"
+  },
+  {
+    "time": "10:00:23 PM",
+    "type": "info",
+    "message": "正在连接... (队列: 2/2)"
+  },
+  {
+    "time": "10:00:23 PM",
+    "type": "info",
+    "message": "咩咩咩-1-597541905 获取车辆信息..."
+  },
+  {
+    "time": "10:00:23 PM",
+    "type": "info",
+    "message": "咩咩咩-2-689898963 获取车辆信息..."
+  },
+  {
+    "time": "10:00:23 PM",
+    "type": "error",
+    "message": "智能发车失败: 服务器错误: 2300070 - 未知错误"
+  },
+  {
+    "time": "10:00:23 PM",
+    "type": "info",
+    "message": "咩咩咩-1-597541905 连接已关闭  (队列: 1/2)"
+  },
+  {
+    "time": "10:00:23 PM",
+    "type": "info",
+    "message": "咩咩咩-2-689898963 连接已关闭  (队列: 0/2)"
+  },
+  {
+    "time": "10:00:24 PM",
+    "type": "info",
+    "message": "正在连接... (队列: 1/2)"
+  },
+  {
+    "time": "10:00:24 PM",
+    "type": "info",
+    "message": "正在连接... (队列: 2/2)"
+  },
+  {
+    "time": "10:00:24 PM",
+    "type": "info",
+    "message": "咩咩-0-529938321 执行加钟 1/4"
+  },
+  {
+    "time": "10:00:24 PM",
+    "type": "info",
+    "message": "咩咩-0-664382501 获取车辆信息..."
+  },
+  {
+    "time": "10:00:25 PM",
+    "type": "info",
+    "message": "咩咩-0-664382501 剩余刷新次数: 0"
+  },
+  {
+    "time": "10:00:25 PM",
+    "type": "info",
+    "message": "咩咩-0-664382501 获取到 24 位潜在护卫"
+  },
+  {
+    "time": "10:00:25 PM",
+    "type": "info",
+    "message": "咩咩-0-664382501 车辆[橙·传说]满足条件，直接发车"
+  },
+  {
+    "time": "10:00:25 PM",
+    "type": "error",
+    "message": "咩咩-0-664382501 车辆[橙·传说]处理失败: 服务器错误: 12000060 - 未知错误，跳过该车辆"
+  },
+  {
+    "time": "10:00:25 PM",
+    "type": "info",
+    "message": "咩咩-0-664382501 车辆[蓝·稀有]满足条件，直接发车"
+  },
+  {
+    "time": "10:00:25 PM",
+    "type": "error",
+    "message": "咩咩-0-664382501 车辆[蓝·稀有]处理失败: 服务器错误: 12000060 - 未知错误，跳过该车辆"
+  },
+  {
+    "time": "10:00:25 PM",
+    "type": "info",
+    "message": "咩咩-0-664382501 车辆[绿·普通]满足条件，直接发车"
+  },
+  {
+    "time": "10:00:25 PM",
+    "type": "info",
+    "message": "咩咩-0-529938321 执行加钟 2/4"
+  },
+  {
+    "time": "10:00:25 PM",
+    "type": "error",
+    "message": "咩咩-0-664382501 车辆[绿·普通]处理失败: 服务器错误: 12000060 - 未知错误，跳过该车辆"
+  },
+  {
+    "time": "10:00:25 PM",
+    "type": "success",
+    "message": "=== 咩咩-0-664382501 智能发车完成 ==="
+  },
+  {
+    "time": "10:00:25 PM",
+    "type": "info",
+    "message": "咩咩-0-664382501 连接已关闭  (队列: 1/2)"
+  },
+  {
+    "time": "10:00:25 PM",
+    "type": "success",
+    "message": "批量智能发车结束"
+  },
+  {
+    "time": "10:00:26 PM",
+    "type": "info",
+    "message": "咩咩-0-529938321 执行加钟 3/4"
+  },
+  {
+    "time": "10:00:26 PM",
+    "type": "info",
+    "message": "正在连接... (队列: 2/2)"
+  },
+  {
+    "time": "10:00:26 PM",
+    "type": "info",
+    "message": "咩咩-0-529938321 执行加钟 4/4"
+  },
+  {
+    "time": "10:00:26 PM",
+    "type": "info",
+    "message": "咩咩咩-1-597541905 执行加钟 1/4"
+  },
+  {
+    "time": "10:00:27 PM",
+    "type": "success",
+    "message": "=== 咩咩-0-529938321 加钟完成 ==="
+  },
+  {
+    "time": "10:00:27 PM",
+    "type": "info",
+    "message": "咩咩-0-529938321 连接已关闭  (队列: 1/2)"
+  },
+  {
+    "time": "10:00:27 PM",
+    "type": "info",
+    "message": "咩咩咩-1-597541905 执行加钟 2/4"
+  },
+  {
+    "time": "10:00:28 PM",
+    "type": "info",
+    "message": "咩咩咩-1-597541905 执行加钟 3/4"
+  },
+  {
+    "time": "10:00:28 PM",
+    "type": "info",
+    "message": "正在连接... (队列: 2/2)"
+  },
+  {
+    "time": "10:00:28 PM",
+    "type": "info",
+    "message": "咩咩咩-1-597541905 执行加钟 4/4"
+  },
+  {
+    "time": "10:00:28 PM",
+    "type": "info",
+    "message": "咩咩咩-2-689898963 执行加钟 1/4"
+  },
+  {
+    "time": "10:00:29 PM",
+    "type": "success",
+    "message": "=== 咩咩咩-1-597541905 加钟完成 ==="
+  },
+  {
+    "time": "10:00:29 PM",
+    "type": "info",
+    "message": "咩咩咩-1-597541905 连接已关闭  (队列: 1/2)"
+  },
+  {
+    "time": "10:00:29 PM",
+    "type": "info",
+    "message": "正在连接... (队列: 2/2)"
+  },
+  {
+    "time": "10:00:29 PM",
+    "type": "info",
+    "message": "咩咩咩-2-689898963 执行加钟 2/4"
+  },
+  {
+    "time": "10:00:29 PM",
+    "type": "info",
+    "message": "咩咩-0-664382501 执行加钟 1/4"
+  },
+  {
+    "time": "10:00:30 PM",
+    "type": "info",
+    "message": "咩咩咩-2-689898963 执行加钟 3/4"
+  },
+  {
+    "time": "10:00:30 PM",
+    "type": "info",
+    "message": "咩咩-0-664382501 执行加钟 2/4"
+  },
+  {
+    "time": "10:00:30 PM",
+    "type": "info",
+    "message": "咩咩咩-2-689898963 执行加钟 4/4"
+  },
+  {
+    "time": "10:00:31 PM",
+    "type": "info",
+    "message": "咩咩-0-664382501 执行加钟 3/4"
+  },
+  {
+    "time": "10:00:31 PM",
+    "type": "success",
+    "message": "=== 咩咩咩-2-689898963 加钟完成 ==="
+  },
+  {
+    "time": "10:00:31 PM",
+    "type": "info",
+    "message": "咩咩咩-2-689898963 连接已关闭  (队列: 1/2)"
+  },
+  {
+    "time": "10:00:31 PM",
+    "type": "info",
+    "message": "咩咩-0-664382501 执行加钟 4/4"
+  },
+  {
+    "time": "10:00:32 PM",
+    "type": "info",
+    "message": "正在连接... (队列: 2/2)"
+  },
+  {
+    "time": "10:00:32 PM",
+    "type": "success",
+    "message": "=== 咩咩-0-664382501 加钟完成 ==="
+  },
+  {
+    "time": "10:00:32 PM",
+    "type": "info",
+    "message": "咩咩-0-664382501 连接已关闭  (队列: 1/2)"
+  },
+  {
+    "time": "10:00:32 PM",
+    "type": "success",
+    "message": "批量加钟结束"
+  },
+  {
+    "time": "10:00:32 PM",
+    "type": "info",
+    "message": "=== 开始重置罐子: 咩咩-0-529938321 ==="
+  },
+  {
+    "time": "10:00:32 PM",
+    "type": "info",
+    "message": "咩咩-0-529938321 停止计时..."
+  },
+  {
+    "time": "10:00:33 PM",
+    "type": "info",
+    "message": "正在连接... (队列: 2/2)"
+  },
+  {
+    "time": "10:00:33 PM",
+    "type": "info",
+    "message": "咩咩-0-529938321 开始计时..."
+  },
+  {
+    "time": "10:00:33 PM",
+    "type": "success",
+    "message": "=== 咩咩-0-529938321 重置完成 ==="
+  },
+  {
+    "time": "10:00:33 PM",
+    "type": "info",
+    "message": "咩咩-0-529938321 连接已关闭  (队列: 1/2)"
+  },
+  {
+    "time": "10:00:33 PM",
+    "type": "info",
+    "message": "=== 开始重置罐子: 咩咩咩-1-597541905 ==="
+  },
+  {
+    "time": "10:00:33 PM",
+    "type": "info",
+    "message": "咩咩咩-1-597541905 停止计时..."
+  },
+  {
+    "time": "10:00:34 PM",
+    "type": "info",
+    "message": "正在连接... (队列: 2/2)"
+  },
+  {
+    "time": "10:00:34 PM",
+    "type": "info",
+    "message": "咩咩咩-1-597541905 开始计时..."
+  },
+  {
+    "time": "10:00:34 PM",
+    "type": "success",
+    "message": "=== 咩咩咩-1-597541905 重置完成 ==="
+  },
+  {
+    "time": "10:00:34 PM",
+    "type": "info",
+    "message": "咩咩咩-1-597541905 连接已关闭  (队列: 1/2)"
+  },
+  {
+    "time": "10:00:35 PM",
+    "type": "info",
+    "message": "=== 开始重置罐子: 咩咩咩-2-689898963 ==="
+  },
+  {
+    "time": "10:00:35 PM",
+    "type": "info",
+    "message": "咩咩咩-2-689898963 停止计时..."
+  },
+  {
+    "time": "10:00:35 PM",
+    "type": "info",
+    "message": "正在连接... (队列: 2/2)"
+  },
+  {
+    "time": "10:00:35 PM",
+    "type": "info",
+    "message": "咩咩咩-2-689898963 开始计时..."
+  },
+  {
+    "time": "10:00:35 PM",
+    "type": "success",
+    "message": "=== 咩咩咩-2-689898963 重置完成 ==="
+  },
+  {
+    "time": "10:00:35 PM",
+    "type": "info",
+    "message": "咩咩咩-2-689898963 连接已关闭  (队列: 1/2)"
+  },
+  {
+    "time": "10:00:35 PM",
+    "type": "info",
+    "message": "background scheduler stopped (SIGTERM)"
+  },
+  {
+    "time": "10:00:35 PM",
+    "type": "info",
+    "message": "=== 定时任务调度服务已停止 ==="
+  },
+  {
+    "time": "10:00:36 PM",
+    "type": "info",
+    "message": "background scheduler started (tasks=/app/server/scheduler.tasks.json, log=/app/server/scheduler.log, tickMs=1000)"
+  },
+  {
+    "time": "10:00:36 PM",
+    "type": "info",
+    "message": "=== 定时任务调度服务已启动 ==="
+  },
+  {
+    "time": "10:00:36 PM",
+    "type": "info",
+    "message": "scheduler API started on :8090"
+  },
+  {
+    "time": "10:01:47 PM",
+    "type": "info",
+    "message": "background scheduler stopped (SIGTERM)"
+  },
+  {
+    "time": "10:01:47 PM",
+    "type": "info",
+    "message": "=== 定时任务调度服务已停止 ==="
+  },
+  {
+    "time": "10:01:47 PM",
+    "type": "info",
+    "message": "background scheduler started (tasks=/app/server/scheduler.tasks.json, log=/app/server/scheduler.log, tickMs=1000)"
+  },
+  {
+    "time": "10:01:47 PM",
+    "type": "info",
+    "message": "=== 定时任务调度服务已启动 ==="
+  },
+  {
+    "time": "10:01:47 PM",
+    "type": "info",
+    "message": "scheduler API started on :8090"
+  },
+  {
+    "time": "10:33:24 PM",
+    "type": "info",
+    "message": "tasks updated via API, count=1"
+  },
+  {
+    "time": "10:34:00 PM",
+    "type": "info",
+    "message": "=== 开始执行定时任务: test ==="
+  },
+  {
+    "time": "10:34:00 PM",
+    "type": "info",
+    "message": "=== 开始验证定时任务 test 的依赖 ==="
+  },
+  {
+    "time": "10:34:00 PM",
+    "type": "info",
+    "message": "✅ localStorage可用"
+  },
+  {
+    "time": "10:34:00 PM",
+    "type": "info",
+    "message": "✅ 将使用 4 个账号执行任务"
+  },
+  {
+    "time": "10:34:00 PM",
+    "type": "success",
+    "message": "=== 定时任务 test 的依赖验证通过，将执行 4 个账号 ==="
+  },
+  {
+    "time": "10:34:00 PM",
+    "type": "info",
+    "message": "执行任务: 免费领取珍宝阁"
+  },
+  {
+    "time": "10:34:00 PM",
+    "type": "info",
+    "message": "=== 开始免费领取珍宝阁: 咩咩-0-529938321 ==="
+  },
+  {
+    "time": "10:34:00 PM",
+    "type": "info",
+    "message": "=== 开始免费领取珍宝阁: 咩咩咩-1-597541905 ==="
+  },
+  {
+    "time": "10:34:00 PM",
+    "type": "info",
+    "message": "=== 开始免费领取珍宝阁: 咩咩咩-2-689898963 ==="
+  },
+  {
+    "time": "10:34:00 PM",
+    "type": "info",
+    "message": "=== 开始免费领取珍宝阁: 咩咩-0-664382501 ==="
+  },
+  {
+    "time": "10:34:00 PM",
+    "type": "info",
+    "message": "执行任务: 一键收车"
+  },
+  {
+    "time": "10:34:00 PM",
+    "type": "info",
+    "message": "=== 开始一键收车: 咩咩-0-529938321 ==="
+  },
+  {
+    "time": "10:34:00 PM",
+    "type": "info",
+    "message": "=== 开始一键收车: 咩咩咩-1-597541905 ==="
+  },
+  {
+    "time": "10:34:00 PM",
+    "type": "info",
+    "message": "=== 开始一键收车: 咩咩咩-2-689898963 ==="
+  },
+  {
+    "time": "10:34:00 PM",
+    "type": "info",
+    "message": "=== 开始一键收车: 咩咩-0-664382501 ==="
+  },
+  {
+    "time": "10:34:00 PM",
+    "type": "info",
+    "message": "执行任务: 智能发车"
+  },
+  {
+    "time": "10:34:00 PM",
+    "type": "info",
+    "message": "=== 开始智能发车: 咩咩-0-529938321 ==="
+  },
+  {
+    "time": "10:34:00 PM",
+    "type": "info",
+    "message": "=== 开始智能发车: 咩咩咩-1-597541905 ==="
+  },
+  {
+    "time": "10:34:00 PM",
+    "type": "info",
+    "message": "=== 开始智能发车: 咩咩咩-2-689898963 ==="
+  },
+  {
+    "time": "10:34:00 PM",
+    "type": "info",
+    "message": "=== 开始智能发车: 咩咩-0-664382501 ==="
+  },
+  {
+    "time": "10:34:00 PM",
+    "type": "info",
+    "message": "执行任务: 一键加钟"
+  },
+  {
+    "time": "10:34:00 PM",
+    "type": "info",
+    "message": "=== 开始一键加钟: 咩咩-0-529938321 ==="
+  },
+  {
+    "time": "10:34:00 PM",
+    "type": "info",
+    "message": "=== 开始一键加钟: 咩咩咩-1-597541905 ==="
+  },
+  {
+    "time": "10:34:00 PM",
+    "type": "info",
+    "message": "=== 开始一键加钟: 咩咩咩-2-689898963 ==="
+  },
+  {
+    "time": "10:34:00 PM",
+    "type": "info",
+    "message": "=== 开始一键加钟: 咩咩-0-664382501 ==="
+  },
+  {
+    "time": "10:34:00 PM",
+    "type": "info",
+    "message": "执行任务: 重置罐子"
+  },
+  {
+    "time": "10:34:00 PM",
+    "type": "info",
+    "message": "正在连接... (队列: 2/2)"
+  },
+  {
+    "time": "10:34:00 PM",
+    "type": "info",
+    "message": "咩咩咩-1-597541905 发送珍宝阁免费领取请求..."
+  },
+  {
+    "time": "10:34:00 PM",
+    "type": "info",
+    "message": "咩咩-0-529938321 发送珍宝阁免费领取请求..."
+  },
+  {
+    "time": "10:34:00 PM",
+    "type": "error",
+    "message": "咩咩咩-1-597541905 珍宝阁领取过程出错: 服务器错误: 12000116 - 未知错误"
+  },
+  {
+    "time": "10:34:00 PM",
+    "type": "info",
+    "message": "咩咩咩-1-597541905 连接已关闭  (队列: 1/2)"
+  },
+  {
+    "time": "10:34:00 PM",
+    "type": "error",
+    "message": "咩咩-0-529938321 珍宝阁领取过程出错: 服务器错误: 12000116 - 未知错误"
+  },
+  {
+    "time": "10:34:01 PM",
+    "type": "info",
+    "message": "咩咩-0-529938321 连接已关闭  (队列: 0/2)"
+  },
+  {
+    "time": "10:34:01 PM",
+    "type": "info",
+    "message": "正在连接... (队列: 1/2)"
+  },
+  {
+    "time": "10:34:01 PM",
+    "type": "info",
+    "message": "正在连接... (队列: 2/2)"
+  },
+  {
+    "time": "10:34:01 PM",
+    "type": "info",
+    "message": "咩咩咩-2-689898963 发送珍宝阁免费领取请求..."
+  },
+  {
+    "time": "10:34:01 PM",
+    "type": "info",
+    "message": "咩咩-0-664382501 发送珍宝阁免费领取请求..."
+  },
+  {
+    "time": "10:34:01 PM",
+    "type": "error",
+    "message": "咩咩-0-664382501 珍宝阁领取过程出错: 服务器错误: 12000116 - 未知错误"
+  },
+  {
+    "time": "10:34:01 PM",
+    "type": "info",
+    "message": "咩咩-0-664382501 连接已关闭  (队列: 1/2)"
+  },
+  {
+    "time": "10:34:01 PM",
+    "type": "error",
+    "message": "咩咩咩-2-689898963 珍宝阁领取过程出错: 服务器错误: 200160 - 未知错误"
+  },
+  {
+    "time": "10:34:01 PM",
+    "type": "info",
+    "message": "咩咩咩-2-689898963 连接已关闭  (队列: 0/2)"
+  },
+  {
+    "time": "10:34:02 PM",
+    "type": "info",
+    "message": "正在连接... (队列: 1/2)"
+  },
+  {
+    "time": "10:34:02 PM",
+    "type": "info",
+    "message": "正在连接... (队列: 2/2)"
+  },
+  {
+    "time": "10:34:02 PM",
+    "type": "warning",
+    "message": "初始化数据失败: websocket not connected"
+  },
+  {
+    "time": "10:34:02 PM",
+    "type": "info",
+    "message": "咩咩-0-529938321 获取车辆信息..."
+  },
+  {
+    "time": "10:34:02 PM",
+    "type": "warning",
+    "message": "websocket not connected"
+  },
+  {
+    "time": "10:34:02 PM",
+    "type": "error",
+    "message": "咩咩-0-529938321 收车失败: websocket not connected"
+  },
+  {
+    "time": "10:34:02 PM",
+    "type": "info",
+    "message": "咩咩-0-529938321 连接已关闭  (队列: 1/2)"
+  },
+  {
+    "time": "10:34:02 PM",
+    "type": "warning",
+    "message": "初始化数据失败: websocket closed"
+  },
+  {
+    "time": "10:34:02 PM",
+    "type": "info",
+    "message": "咩咩咩-1-597541905 获取车辆信息..."
+  },
+  {
+    "time": "10:34:02 PM",
+    "type": "error",
+    "message": "咩咩咩-1-597541905 收车失败: websocket not connected"
+  },
+  {
+    "time": "10:34:02 PM",
+    "type": "info",
+    "message": "咩咩咩-1-597541905 连接已关闭  (队列: 0/2)"
+  },
+  {
+    "time": "10:34:03 PM",
+    "type": "info",
+    "message": "正在连接... (队列: 1/2)"
+  },
+  {
+    "time": "10:34:03 PM",
+    "type": "info",
+    "message": "正在连接... (队列: 2/2)"
+  },
+  {
+    "time": "10:34:03 PM",
+    "type": "error",
+    "message": "咩咩咩-2-689898963 连接失败: websocket closed"
+  },
+  {
+    "time": "10:34:03 PM",
+    "type": "info",
+    "message": "咩咩-0-664382501 获取车辆信息..."
+  },
+  {
+    "time": "10:34:04 PM",
+    "type": "info",
+    "message": "咩咩-0-664382501 没有可收取的车辆"
+  },
+  {
+    "time": "10:34:04 PM",
+    "type": "success",
+    "message": "=== 咩咩-0-664382501 收车完成，共收取 0 辆 ==="
+  },
+  {
+    "time": "10:34:04 PM",
+    "type": "info",
+    "message": "咩咩-0-664382501 连接已关闭  (队列: 1/2)"
+  },
+  {
+    "time": "10:34:04 PM",
+    "type": "info",
+    "message": "正在连接... (队列: 2/2)"
+  },
+  {
+    "time": "10:34:04 PM",
+    "type": "info",
+    "message": "咩咩-0-529938321 获取车辆信息..."
+  },
+  {
+    "time": "10:34:05 PM",
+    "type": "warning",
+    "message": "服务器错误: 2300070 - 未知错误"
+  },
+  {
+    "time": "10:34:05 PM",
+    "type": "error",
+    "message": "智能发车失败: 服务器错误: 2300070 - 未知错误"
+  },
+  {
+    "time": "10:34:05 PM",
+    "type": "info",
+    "message": "咩咩-0-529938321 连接已关闭  (队列: 1/2)"
+  },
+  {
+    "time": "10:34:05 PM",
+    "type": "info",
+    "message": "正在连接... (队列: 2/2)"
+  },
+  {
+    "time": "10:34:06 PM",
+    "type": "warning",
+    "message": "初始化数据失败: websocket not connected"
+  },
+  {
+    "time": "10:34:06 PM",
+    "type": "info",
+    "message": "咩咩咩-1-597541905 获取车辆信息..."
+  },
+  {
+    "time": "10:34:06 PM",
+    "type": "warning",
+    "message": "websocket not connected"
+  },
+  {
+    "time": "10:34:06 PM",
+    "type": "error",
+    "message": "智能发车失败: websocket not connected"
+  },
+  {
+    "time": "10:34:06 PM",
+    "type": "info",
+    "message": "咩咩咩-1-597541905 连接已关闭  (队列: 1/2)"
+  },
+  {
+    "time": "10:34:07 PM",
+    "type": "info",
+    "message": "正在连接... (队列: 2/2)"
+  },
+  {
+    "time": "10:34:07 PM",
+    "type": "info",
+    "message": "咩咩咩-2-689898963 获取车辆信息..."
+  },
+  {
+    "time": "10:34:08 PM",
+    "type": "warning",
+    "message": "服务器错误: 2300070 - 未知错误"
+  },
+  {
+    "time": "10:34:08 PM",
+    "type": "error",
+    "message": "智能发车失败: 服务器错误: 2300070 - 未知错误"
+  },
+  {
+    "time": "10:34:08 PM",
+    "type": "info",
+    "message": "咩咩咩-2-689898963 连接已关闭  (队列: 1/2)"
+  },
+  {
+    "time": "10:34:08 PM",
+    "type": "warning",
+    "message": "websocket disconnected"
+  },
+  {
+    "time": "10:34:08 PM",
+    "type": "error",
+    "message": "咩咩咩-2-689898963 收车失败: websocket disconnected"
+  },
+  {
+    "time": "10:34:08 PM",
+    "type": "info",
+    "message": "咩咩咩-2-689898963 连接已关闭  (队列: 0/2)"
+  },
+  {
+    "time": "10:34:08 PM",
+    "type": "success",
+    "message": "批量一键收车结束"
+  },
+  {
+    "time": "10:34:08 PM",
+    "type": "info",
+    "message": "正在连接... (队列: 1/2)"
+  },
+  {
+    "time": "10:34:08 PM",
+    "type": "info",
+    "message": "正在连接... (队列: 2/2)"
+  },
+  {
+    "time": "10:34:09 PM",
+    "type": "info",
+    "message": "咩咩-0-664382501 获取车辆信息..."
+  },
+  {
+    "time": "10:34:09 PM",
+    "type": "info",
+    "message": "咩咩-0-529938321 执行加钟 1/4"
+  },
+  {
+    "time": "10:34:09 PM",
+    "type": "info",
+    "message": "咩咩-0-664382501 剩余刷新次数: 0"
+  },
+  {
+    "time": "10:34:09 PM",
+    "type": "info",
+    "message": "咩咩-0-664382501 获取到 24 位潜在护卫"
+  },
+  {
+    "time": "10:34:09 PM",
+    "type": "info",
+    "message": "咩咩-0-664382501 车辆[蓝·稀有]满足条件，直接发车"
+  },
+  {
+    "time": "10:34:09 PM",
+    "type": "error",
+    "message": "咩咩-0-664382501 车辆[蓝·稀有]处理失败: 服务器错误: 12000060 - 未知错误，跳过该车辆"
+  },
+  {
+    "time": "10:34:09 PM",
+    "type": "info",
+    "message": "咩咩-0-664382501 车辆[绿·普通]满足条件，直接发车"
+  },
+  {
+    "time": "10:34:09 PM",
+    "type": "error",
+    "message": "咩咩-0-664382501 车辆[绿·普通]处理失败: 服务器错误: 12000060 - 未知错误，跳过该车辆"
+  },
+  {
+    "time": "10:34:09 PM",
+    "type": "info",
+    "message": "咩咩-0-529938321 执行加钟 2/4"
+  },
+  {
+    "time": "10:34:09 PM",
+    "type": "info",
+    "message": "咩咩-0-664382501 车辆[橙·传说]满足条件，直接发车"
+  },
+  {
+    "time": "10:34:09 PM",
+    "type": "error",
+    "message": "咩咩-0-664382501 车辆[橙·传说]处理失败: websocket closed，跳过该车辆"
+  },
+  {
+    "time": "10:34:09 PM",
+    "type": "success",
+    "message": "=== 咩咩-0-664382501 智能发车完成 ==="
+  },
+  {
+    "time": "10:34:09 PM",
+    "type": "info",
+    "message": "咩咩-0-664382501 连接已关闭  (队列: 1/2)"
+  },
+  {
+    "time": "10:34:09 PM",
+    "type": "success",
+    "message": "批量智能发车结束"
+  },
+  {
+    "time": "10:34:10 PM",
+    "type": "info",
+    "message": "咩咩-0-529938321 执行加钟 3/4"
+  },
+  {
+    "time": "10:34:10 PM",
+    "type": "warning",
+    "message": "websocket not connected"
+  },
+  {
+    "time": "10:34:10 PM",
+    "type": "error",
+    "message": "咩咩-0-529938321 加钟失败: websocket not connected"
+  },
+  {
+    "time": "10:34:10 PM",
+    "type": "info",
+    "message": "咩咩-0-529938321 连接已关闭  (队列: 0/2)"
+  },
+  {
+    "time": "10:34:10 PM",
+    "type": "info",
+    "message": "正在连接... (队列: 1/2)"
+  },
+  {
+    "time": "10:34:10 PM",
+    "type": "info",
+    "message": "正在连接... (队列: 2/2)"
+  },
+  {
+    "time": "10:34:11 PM",
+    "type": "info",
+    "message": "咩咩咩-1-597541905 执行加钟 1/4"
+  },
+  {
+    "time": "10:34:11 PM",
+    "type": "info",
+    "message": "咩咩咩-2-689898963 执行加钟 1/4"
+  },
+  {
+    "time": "10:34:11 PM",
+    "type": "info",
+    "message": "咩咩咩-1-597541905 执行加钟 2/4"
+  },
+  {
+    "time": "10:34:11 PM",
+    "type": "info",
+    "message": "咩咩咩-2-689898963 执行加钟 2/4"
+  },
+  {
+    "time": "10:34:12 PM",
+    "type": "info",
+    "message": "咩咩咩-1-597541905 执行加钟 3/4"
+  },
+  {
+    "time": "10:34:12 PM",
+    "type": "warning",
+    "message": "websocket not connected"
+  },
+  {
+    "time": "10:34:12 PM",
+    "type": "error",
+    "message": "咩咩咩-1-597541905 加钟失败: websocket not connected"
+  },
+  {
+    "time": "10:34:12 PM",
+    "type": "info",
+    "message": "咩咩咩-1-597541905 连接已关闭  (队列: 1/2)"
+  },
+  {
+    "time": "10:34:12 PM",
+    "type": "info",
+    "message": "咩咩咩-2-689898963 执行加钟 3/4"
+  },
+  {
+    "time": "10:34:12 PM",
+    "type": "info",
+    "message": "正在连接... (队列: 2/2)"
+  },
+  {
+    "time": "10:34:12 PM",
+    "type": "info",
+    "message": "咩咩咩-2-689898963 执行加钟 4/4"
+  },
+  {
+    "time": "10:34:13 PM",
+    "type": "info",
+    "message": "咩咩-0-664382501 执行加钟 1/4"
+  },
+  {
+    "time": "10:34:13 PM",
+    "type": "success",
+    "message": "=== 咩咩咩-2-689898963 加钟完成 ==="
+  },
+  {
+    "time": "10:34:13 PM",
+    "type": "info",
+    "message": "咩咩咩-2-689898963 连接已关闭  (队列: 1/2)"
+  },
+  {
+    "time": "10:34:13 PM",
+    "type": "info",
+    "message": "咩咩-0-664382501 执行加钟 2/4"
+  },
+  {
+    "time": "10:34:14 PM",
+    "type": "info",
+    "message": "咩咩-0-664382501 执行加钟 3/4"
+  },
+  {
+    "time": "10:34:14 PM",
+    "type": "info",
+    "message": "正在连接... (队列: 2/2)"
+  },
+  {
+    "time": "10:34:14 PM",
+    "type": "info",
+    "message": "咩咩-0-664382501 执行加钟 4/4"
+  },
+  {
+    "time": "10:34:15 PM",
+    "type": "info",
+    "message": "=== 开始重置罐子: 咩咩-0-529938321 ==="
+  },
+  {
+    "time": "10:34:15 PM",
+    "type": "info",
+    "message": "咩咩-0-529938321 停止计时..."
+  },
+  {
+    "time": "10:34:15 PM",
+    "type": "success",
+    "message": "=== 咩咩-0-664382501 加钟完成 ==="
+  },
+  {
+    "time": "10:34:15 PM",
+    "type": "info",
+    "message": "咩咩-0-664382501 连接已关闭  (队列: 1/2)"
+  },
+  {
+    "time": "10:34:15 PM",
+    "type": "success",
+    "message": "批量加钟结束"
+  },
+  {
+    "time": "10:34:15 PM",
+    "type": "info",
+    "message": "咩咩-0-529938321 开始计时..."
+  },
+  {
+    "time": "10:34:15 PM",
+    "type": "success",
+    "message": "=== 咩咩-0-529938321 重置完成 ==="
+  },
+  {
+    "time": "10:34:15 PM",
+    "type": "info",
+    "message": "咩咩-0-529938321 连接已关闭  (队列: 0/2)"
+  },
+  {
+    "time": "10:34:16 PM",
+    "type": "info",
+    "message": "正在连接... (队列: 1/2)"
+  },
+  {
+    "time": "10:34:16 PM",
+    "type": "info",
+    "message": "正在连接... (队列: 2/2)"
+  },
+  {
+    "time": "10:34:17 PM",
+    "type": "info",
+    "message": "=== 开始重置罐子: 咩咩咩-2-689898963 ==="
+  },
+  {
+    "time": "10:34:17 PM",
+    "type": "info",
+    "message": "咩咩咩-2-689898963 停止计时..."
+  },
+  {
+    "time": "10:34:17 PM",
+    "type": "info",
+    "message": "=== 开始重置罐子: 咩咩咩-1-597541905 ==="
+  },
+  {
+    "time": "10:34:17 PM",
+    "type": "info",
+    "message": "咩咩咩-1-597541905 停止计时..."
+  },
+  {
+    "time": "10:34:18 PM",
+    "type": "info",
+    "message": "咩咩咩-2-689898963 开始计时..."
+  },
+  {
+    "time": "10:34:18 PM",
+    "type": "success",
+    "message": "=== 咩咩咩-2-689898963 重置完成 ==="
+  },
+  {
+    "time": "10:34:18 PM",
+    "type": "info",
+    "message": "咩咩咩-2-689898963 连接已关闭  (队列: 1/2)"
+  },
+  {
+    "time": "10:34:18 PM",
+    "type": "info",
+    "message": "咩咩咩-1-597541905 开始计时..."
+  },
+  {
+    "time": "10:34:18 PM",
+    "type": "success",
+    "message": "=== 咩咩咩-1-597541905 重置完成 ==="
+  },
+  {
+    "time": "10:34:18 PM",
+    "type": "info",
+    "message": "咩咩咩-1-597541905 连接已关闭  (队列: 0/2)"
+  },
+  {
+    "time": "10:34:18 PM",
+    "type": "info",
+    "message": "正在连接... (队列: 1/2)"
+  },
+  {
+    "time": "10:34:19 PM",
+    "type": "info",
+    "message": "=== 开始重置罐子: 咩咩-0-664382501 ==="
+  },
+  {
+    "time": "10:34:19 PM",
+    "type": "info",
+    "message": "咩咩-0-664382501 停止计时..."
+  },
+  {
+    "time": "10:34:19 PM",
+    "type": "info",
+    "message": "咩咩-0-664382501 开始计时..."
+  },
+  {
+    "time": "10:34:19 PM",
+    "type": "success",
+    "message": "=== 咩咩-0-664382501 重置完成 ==="
+  },
+  {
+    "time": "10:34:19 PM",
+    "type": "info",
+    "message": "咩咩-0-664382501 连接已关闭  (队列: 0/2)"
+  },
+  {
+    "time": "10:34:19 PM",
+    "type": "success",
+    "message": "批量重置罐子结束"
+  },
+  {
+    "time": "10:34:19 PM",
+    "type": "success",
+    "message": "=== 定时任务执行完成: test ==="
+  },
+  {
+    "time": "10:34:54 PM",
+    "type": "info",
+    "message": "tasks updated via API, count=1"
+  },
+  {
+    "time": "10:36:00 PM",
+    "type": "info",
+    "message": "=== 开始执行定时任务: test ==="
+  },
+  {
+    "time": "10:36:00 PM",
+    "type": "info",
+    "message": "=== 开始验证定时任务 test 的依赖 ==="
+  },
+  {
+    "time": "10:36:00 PM",
+    "type": "info",
+    "message": "✅ localStorage可用"
+  },
+  {
+    "time": "10:36:00 PM",
+    "type": "info",
+    "message": "✅ 将使用 4 个账号执行任务"
+  },
+  {
+    "time": "10:36:00 PM",
+    "type": "success",
+    "message": "=== 定时任务 test 的依赖验证通过，将执行 4 个账号 ==="
+  },
+  {
+    "time": "10:36:00 PM",
+    "type": "info",
+    "message": "执行任务: 免费领取珍宝阁"
+  },
+  {
+    "time": "10:36:00 PM",
+    "type": "info",
+    "message": "=== 开始免费领取珍宝阁: 咩咩-0-529938321 ==="
+  },
+  {
+    "time": "10:36:00 PM",
+    "type": "info",
+    "message": "=== 开始免费领取珍宝阁: 咩咩咩-1-597541905 ==="
+  },
+  {
+    "time": "10:36:00 PM",
+    "type": "info",
+    "message": "=== 开始免费领取珍宝阁: 咩咩咩-2-689898963 ==="
+  },
+  {
+    "time": "10:36:00 PM",
+    "type": "info",
+    "message": "=== 开始免费领取珍宝阁: 咩咩-0-664382501 ==="
+  },
+  {
+    "time": "10:36:00 PM",
+    "type": "info",
+    "message": "执行任务: 一键收车"
+  },
+  {
+    "time": "10:36:00 PM",
+    "type": "info",
+    "message": "=== 开始一键收车: 咩咩-0-529938321 ==="
+  },
+  {
+    "time": "10:36:00 PM",
+    "type": "info",
+    "message": "=== 开始一键收车: 咩咩咩-1-597541905 ==="
+  },
+  {
+    "time": "10:36:00 PM",
+    "type": "info",
+    "message": "=== 开始一键收车: 咩咩咩-2-689898963 ==="
+  },
+  {
+    "time": "10:36:00 PM",
+    "type": "info",
+    "message": "=== 开始一键收车: 咩咩-0-664382501 ==="
+  },
+  {
+    "time": "10:36:00 PM",
+    "type": "info",
+    "message": "执行任务: 智能发车"
+  },
+  {
+    "time": "10:36:00 PM",
+    "type": "info",
+    "message": "=== 开始智能发车: 咩咩-0-529938321 ==="
+  },
+  {
+    "time": "10:36:00 PM",
+    "type": "info",
+    "message": "=== 开始智能发车: 咩咩咩-1-597541905 ==="
+  },
+  {
+    "time": "10:36:00 PM",
+    "type": "info",
+    "message": "=== 开始智能发车: 咩咩咩-2-689898963 ==="
+  },
+  {
+    "time": "10:36:00 PM",
+    "type": "info",
+    "message": "=== 开始智能发车: 咩咩-0-664382501 ==="
+  },
+  {
+    "time": "10:36:00 PM",
+    "type": "info",
+    "message": "执行任务: 一键加钟"
+  },
+  {
+    "time": "10:36:00 PM",
+    "type": "info",
+    "message": "=== 开始一键加钟: 咩咩-0-529938321 ==="
+  },
+  {
+    "time": "10:36:00 PM",
+    "type": "info",
+    "message": "=== 开始一键加钟: 咩咩咩-1-597541905 ==="
+  },
+  {
+    "time": "10:36:00 PM",
+    "type": "info",
+    "message": "=== 开始一键加钟: 咩咩咩-2-689898963 ==="
+  },
+  {
+    "time": "10:36:00 PM",
+    "type": "info",
+    "message": "=== 开始一键加钟: 咩咩-0-664382501 ==="
+  },
+  {
+    "time": "10:36:00 PM",
+    "type": "info",
+    "message": "执行任务: 重置罐子"
+  },
+  {
+    "time": "10:36:00 PM",
+    "type": "info",
+    "message": "正在连接... (队列: 2/2)"
+  },
+  {
+    "time": "10:36:01 PM",
+    "type": "info",
+    "message": "咩咩咩-1-597541905 发送珍宝阁免费领取请求..."
+  },
+  {
+    "time": "10:36:01 PM",
+    "type": "info",
+    "message": "咩咩-0-529938321 发送珍宝阁免费领取请求..."
+  },
+  {
+    "time": "10:36:01 PM",
+    "type": "error",
+    "message": "咩咩咩-1-597541905 珍宝阁领取过程出错: 服务器错误: 12000116 - 未知错误"
+  },
+  {
+    "time": "10:36:01 PM",
+    "type": "info",
+    "message": "咩咩咩-1-597541905 连接已关闭  (队列: 1/2)"
+  },
+  {
+    "time": "10:36:01 PM",
+    "type": "error",
+    "message": "咩咩-0-529938321 珍宝阁领取过程出错: 服务器错误: 12000116 - 未知错误"
+  },
+  {
+    "time": "10:36:01 PM",
+    "type": "info",
+    "message": "咩咩-0-529938321 连接已关闭  (队列: 0/2)"
+  },
+  {
+    "time": "10:36:01 PM",
+    "type": "info",
+    "message": "正在连接... (队列: 1/2)"
+  },
+  {
+    "time": "10:36:01 PM",
+    "type": "info",
+    "message": "正在连接... (队列: 2/2)"
+  },
+  {
+    "time": "10:36:02 PM",
+    "type": "info",
+    "message": "咩咩-0-664382501 发送珍宝阁免费领取请求..."
+  },
+  {
+    "time": "10:36:02 PM",
+    "type": "info",
+    "message": "咩咩咩-2-689898963 发送珍宝阁免费领取请求..."
+  },
+  {
+    "time": "10:36:02 PM",
+    "type": "error",
+    "message": "咩咩咩-2-689898963 珍宝阁领取过程出错: 服务器错误: 200160 - 未知错误"
+  },
+  {
+    "time": "10:36:02 PM",
+    "type": "info",
+    "message": "咩咩咩-2-689898963 连接已关闭  (队列: 1/2)"
+  },
+  {
+    "time": "10:36:02 PM",
+    "type": "error",
+    "message": "咩咩-0-664382501 珍宝阁领取过程出错: 服务器错误: 12000116 - 未知错误"
+  },
+  {
+    "time": "10:36:02 PM",
+    "type": "info",
+    "message": "咩咩-0-664382501 连接已关闭  (队列: 0/2)"
+  },
+  {
+    "time": "10:36:02 PM",
+    "type": "info",
+    "message": "正在连接... (队列: 1/2)"
+  },
+  {
+    "time": "10:36:02 PM",
+    "type": "info",
+    "message": "正在连接... (队列: 2/2)"
+  },
+  {
+    "time": "10:36:03 PM",
+    "type": "info",
+    "message": "咩咩咩-1-597541905 获取车辆信息..."
+  },
+  {
+    "time": "10:36:03 PM",
+    "type": "info",
+    "message": "咩咩-0-529938321 获取车辆信息..."
+  },
+  {
+    "time": "10:36:03 PM",
+    "type": "warning",
+    "message": "服务器错误: 2300070 - 未知错误"
+  },
+  {
+    "time": "10:36:03 PM",
+    "type": "error",
+    "message": "咩咩咩-1-597541905 收车失败: 服务器错误: 2300070 - 未知错误"
+  },
+  {
+    "time": "10:36:03 PM",
+    "type": "info",
+    "message": "咩咩咩-1-597541905 连接已关闭  (队列: 1/2)"
+  },
+  {
+    "time": "10:36:03 PM",
+    "type": "error",
+    "message": "咩咩-0-529938321 收车失败: 服务器错误: 2300070 - 未知错误"
+  },
+  {
+    "time": "10:36:03 PM",
+    "type": "info",
+    "message": "咩咩-0-529938321 连接已关闭  (队列: 0/2)"
+  },
+  {
+    "time": "10:36:03 PM",
+    "type": "info",
+    "message": "正在连接... (队列: 1/2)"
+  },
+  {
+    "time": "10:36:03 PM",
+    "type": "info",
+    "message": "正在连接... (队列: 2/2)"
+  },
+  {
+    "time": "10:36:04 PM",
+    "type": "info",
+    "message": "咩咩咩-2-689898963 获取车辆信息..."
+  },
+  {
+    "time": "10:36:04 PM",
+    "type": "info",
+    "message": "咩咩-0-664382501 获取车辆信息..."
+  },
+  {
+    "time": "10:36:04 PM",
+    "type": "warning",
+    "message": "服务器错误: 2300070 - 未知错误"
+  },
+  {
+    "time": "10:36:04 PM",
+    "type": "error",
+    "message": "咩咩咩-2-689898963 收车失败: 服务器错误: 2300070 - 未知错误"
+  },
+  {
+    "time": "10:36:04 PM",
+    "type": "info",
+    "message": "咩咩咩-2-689898963 连接已关闭  (队列: 1/2)"
+  },
+  {
+    "time": "10:36:04 PM",
+    "type": "info",
+    "message": "咩咩-0-664382501 没有可收取的车辆"
+  },
+  {
+    "time": "10:36:04 PM",
+    "type": "success",
+    "message": "=== 咩咩-0-664382501 收车完成，共收取 0 辆 ==="
+  },
+  {
+    "time": "10:36:04 PM",
+    "type": "info",
+    "message": "咩咩-0-664382501 连接已关闭  (队列: 0/2)"
+  },
+  {
+    "time": "10:36:04 PM",
+    "type": "success",
+    "message": "批量一键收车结束"
+  },
+  {
+    "time": "10:36:04 PM",
+    "type": "info",
+    "message": "正在连接... (队列: 1/2)"
+  },
+  {
+    "time": "10:36:04 PM",
+    "type": "info",
+    "message": "正在连接... (队列: 2/2)"
+  },
+  {
+    "time": "10:36:05 PM",
+    "type": "info",
+    "message": "咩咩-0-529938321 获取车辆信息..."
+  },
+  {
+    "time": "10:36:05 PM",
+    "type": "info",
+    "message": "咩咩咩-1-597541905 获取车辆信息..."
+  },
+  {
+    "time": "10:36:05 PM",
+    "type": "warning",
+    "message": "服务器错误: 2300070 - 未知错误"
+  },
+  {
+    "time": "10:36:05 PM",
+    "type": "error",
+    "message": "智能发车失败: 服务器错误: 2300070 - 未知错误"
+  },
+  {
+    "time": "10:36:05 PM",
+    "type": "info",
+    "message": "咩咩-0-529938321 连接已关闭  (队列: 1/2)"
+  },
+  {
+    "time": "10:36:05 PM",
+    "type": "info",
+    "message": "咩咩咩-1-597541905 连接已关闭  (队列: 0/2)"
+  },
+  {
+    "time": "10:36:05 PM",
+    "type": "info",
+    "message": "正在连接... (队列: 1/2)"
+  },
+  {
+    "time": "10:36:05 PM",
+    "type": "info",
+    "message": "正在连接... (队列: 2/2)"
+  },
+  {
+    "time": "10:36:06 PM",
+    "type": "info",
+    "message": "咩咩咩-2-689898963 获取车辆信息..."
+  },
+  {
+    "time": "10:36:06 PM",
+    "type": "info",
+    "message": "咩咩-0-664382501 获取车辆信息..."
+  },
+  {
+    "time": "10:36:06 PM",
+    "type": "warning",
+    "message": "服务器错误: 2300070 - 未知错误"
+  },
+  {
+    "time": "10:36:06 PM",
+    "type": "error",
+    "message": "智能发车失败: 服务器错误: 2300070 - 未知错误"
+  },
+  {
+    "time": "10:36:06 PM",
+    "type": "info",
+    "message": "咩咩咩-2-689898963 连接已关闭  (队列: 1/2)"
+  },
+  {
+    "time": "10:36:06 PM",
+    "type": "info",
+    "message": "咩咩-0-664382501 剩余刷新次数: 0"
+  },
+  {
+    "time": "10:36:06 PM",
+    "type": "info",
+    "message": "正在连接... (队列: 2/2)"
+  },
+  {
+    "time": "10:36:07 PM",
+    "type": "info",
+    "message": "咩咩-0-664382501 获取到 24 位潜在护卫"
+  },
+  {
+    "time": "10:36:07 PM",
+    "type": "info",
+    "message": "咩咩-0-664382501 车辆[绿·普通]满足条件，直接发车"
+  },
+  {
+    "time": "10:36:07 PM",
+    "type": "error",
+    "message": "咩咩-0-664382501 车辆[绿·普通]处理失败: 服务器错误: 12000060 - 未知错误，跳过该车辆"
+  },
+  {
+    "time": "10:36:07 PM",
+    "type": "info",
+    "message": "咩咩-0-664382501 车辆[橙·传说]满足条件，直接发车"
+  },
+  {
+    "time": "10:36:07 PM",
+    "type": "error",
+    "message": "咩咩-0-664382501 车辆[橙·传说]处理失败: 服务器错误: 12000060 - 未知错误，跳过该车辆"
+  },
+  {
+    "time": "10:36:07 PM",
+    "type": "info",
+    "message": "咩咩-0-664382501 车辆[蓝·稀有]满足条件，直接发车"
+  },
+  {
+    "time": "10:36:07 PM",
+    "type": "error",
+    "message": "咩咩-0-664382501 车辆[蓝·稀有]处理失败: 服务器错误: 12000060 - 未知错误，跳过该车辆"
+  },
+  {
+    "time": "10:36:07 PM",
+    "type": "success",
+    "message": "=== 咩咩-0-664382501 智能发车完成 ==="
+  },
+  {
+    "time": "10:36:07 PM",
+    "type": "info",
+    "message": "咩咩-0-664382501 连接已关闭  (队列: 1/2)"
+  },
+  {
+    "time": "10:36:07 PM",
+    "type": "success",
+    "message": "批量智能发车结束"
+  },
+  {
+    "time": "10:36:07 PM",
+    "type": "info",
+    "message": "咩咩-0-529938321 执行加钟 1/4"
+  },
+  {
+    "time": "10:36:08 PM",
+    "type": "info",
+    "message": "正在连接... (队列: 2/2)"
+  },
+  {
+    "time": "10:36:08 PM",
+    "type": "info",
+    "message": "咩咩-0-529938321 执行加钟 2/4"
+  },
+  {
+    "time": "10:36:08 PM",
+    "type": "info",
+    "message": "咩咩咩-1-597541905 执行加钟 1/4"
+  },
+  {
+    "time": "10:36:08 PM",
+    "type": "info",
+    "message": "咩咩-0-529938321 执行加钟 3/4"
+  },
+  {
+    "time": "10:36:09 PM",
+    "type": "info",
+    "message": "咩咩咩-1-597541905 执行加钟 2/4"
+  },
+  {
+    "time": "10:36:09 PM",
+    "type": "info",
+    "message": "咩咩-0-529938321 执行加钟 4/4"
+  },
+  {
+    "time": "10:36:09 PM",
+    "type": "info",
+    "message": "咩咩咩-1-597541905 执行加钟 3/4"
+  },
+  {
+    "time": "10:36:10 PM",
+    "type": "success",
+    "message": "=== 咩咩-0-529938321 加钟完成 ==="
+  },
+  {
+    "time": "10:36:10 PM",
+    "type": "info",
+    "message": "咩咩-0-529938321 连接已关闭  (队列: 1/2)"
+  },
+  {
+    "time": "10:36:10 PM",
+    "type": "info",
+    "message": "咩咩咩-1-597541905 执行加钟 4/4"
+  },
+  {
+    "time": "10:36:10 PM",
+    "type": "success",
+    "message": "=== 咩咩咩-1-597541905 加钟完成 ==="
+  },
+  {
+    "time": "10:36:10 PM",
+    "type": "info",
+    "message": "咩咩咩-1-597541905 连接已关闭  (队列: 0/2)"
+  },
+  {
+    "time": "10:36:11 PM",
+    "type": "info",
+    "message": "正在连接... (队列: 1/2)"
+  },
+  {
+    "time": "10:36:11 PM",
+    "type": "info",
+    "message": "正在连接... (队列: 2/2)"
+  },
+  {
+    "time": "10:36:11 PM",
+    "type": "info",
+    "message": "咩咩咩-2-689898963 执行加钟 1/4"
+  },
+  {
+    "time": "10:36:12 PM",
+    "type": "info",
+    "message": "咩咩-0-664382501 执行加钟 1/4"
+  },
+  {
+    "time": "10:36:12 PM",
+    "type": "info",
+    "message": "咩咩咩-2-689898963 执行加钟 2/4"
+  },
+  {
+    "time": "10:36:12 PM",
+    "type": "info",
+    "message": "咩咩-0-664382501 执行加钟 2/4"
+  },
+  {
+    "time": "10:36:12 PM",
+    "type": "info",
+    "message": "咩咩咩-2-689898963 执行加钟 3/4"
+  },
+  {
+    "time": "10:36:13 PM",
+    "type": "info",
+    "message": "咩咩-0-664382501 执行加钟 3/4"
+  },
+  {
+    "time": "10:36:13 PM",
+    "type": "info",
+    "message": "咩咩咩-2-689898963 执行加钟 4/4"
+  },
+  {
+    "time": "10:36:14 PM",
+    "type": "info",
+    "message": "咩咩-0-664382501 执行加钟 4/4"
+  },
+  {
+    "time": "10:36:14 PM",
+    "type": "success",
+    "message": "=== 咩咩咩-2-689898963 加钟完成 ==="
+  },
+  {
+    "time": "10:36:14 PM",
+    "type": "info",
+    "message": "咩咩咩-2-689898963 连接已关闭  (队列: 1/2)"
+  },
+  {
+    "time": "10:36:14 PM",
+    "type": "success",
+    "message": "=== 咩咩-0-664382501 加钟完成 ==="
+  },
+  {
+    "time": "10:36:14 PM",
+    "type": "info",
+    "message": "咩咩-0-664382501 连接已关闭  (队列: 0/2)"
+  },
+  {
+    "time": "10:36:14 PM",
+    "type": "success",
+    "message": "批量加钟结束"
+  },
+  {
+    "time": "10:36:15 PM",
+    "type": "info",
+    "message": "正在连接... (队列: 1/2)"
+  },
+  {
+    "time": "10:36:15 PM",
+    "type": "info",
+    "message": "正在连接... (队列: 2/2)"
+  },
+  {
+    "time": "10:36:15 PM",
+    "type": "info",
+    "message": "=== 开始重置罐子: 咩咩咩-1-597541905 ==="
+  },
+  {
+    "time": "10:36:15 PM",
+    "type": "info",
+    "message": "咩咩咩-1-597541905 停止计时..."
+  },
+  {
+    "time": "10:36:15 PM",
+    "type": "info",
+    "message": "=== 开始重置罐子: 咩咩-0-529938321 ==="
+  },
+  {
+    "time": "10:36:15 PM",
+    "type": "info",
+    "message": "咩咩-0-529938321 停止计时..."
+  },
+  {
+    "time": "10:36:16 PM",
+    "type": "info",
+    "message": "咩咩咩-1-597541905 开始计时..."
+  },
+  {
+    "time": "10:36:16 PM",
+    "type": "info",
+    "message": "咩咩-0-529938321 开始计时..."
+  },
+  {
+    "time": "10:36:16 PM",
+    "type": "success",
+    "message": "=== 咩咩咩-1-597541905 重置完成 ==="
+  },
+  {
+    "time": "10:36:16 PM",
+    "type": "info",
+    "message": "咩咩咩-1-597541905 连接已关闭  (队列: 1/2)"
+  },
+  {
+    "time": "10:36:16 PM",
+    "type": "success",
+    "message": "=== 咩咩-0-529938321 重置完成 ==="
+  },
+  {
+    "time": "10:36:16 PM",
+    "type": "info",
+    "message": "咩咩-0-529938321 连接已关闭  (队列: 0/2)"
+  },
+  {
+    "time": "10:36:17 PM",
+    "type": "info",
+    "message": "正在连接... (队列: 1/2)"
+  },
+  {
+    "time": "10:36:17 PM",
+    "type": "info",
+    "message": "正在连接... (队列: 2/2)"
+  },
+  {
+    "time": "10:36:17 PM",
+    "type": "info",
+    "message": "=== 开始重置罐子: 咩咩咩-2-689898963 ==="
+  },
+  {
+    "time": "10:36:17 PM",
+    "type": "info",
+    "message": "咩咩咩-2-689898963 停止计时..."
+  },
+  {
+    "time": "10:36:17 PM",
+    "type": "info",
+    "message": "=== 开始重置罐子: 咩咩-0-664382501 ==="
+  },
+  {
+    "time": "10:36:17 PM",
+    "type": "info",
+    "message": "咩咩-0-664382501 停止计时..."
+  },
+  {
+    "time": "10:36:18 PM",
+    "type": "info",
+    "message": "咩咩-0-664382501 开始计时..."
+  },
+  {
+    "time": "10:36:18 PM",
+    "type": "info",
+    "message": "咩咩咩-2-689898963 开始计时..."
+  },
+  {
+    "time": "10:36:18 PM",
+    "type": "success",
+    "message": "=== 咩咩-0-664382501 重置完成 ==="
+  },
+  {
+    "time": "10:36:18 PM",
+    "type": "info",
+    "message": "咩咩-0-664382501 连接已关闭  (队列: 1/2)"
+  },
+  {
+    "time": "10:36:18 PM",
+    "type": "success",
+    "message": "=== 咩咩咩-2-689898963 重置完成 ==="
+  },
+  {
+    "time": "10:36:18 PM",
+    "type": "info",
+    "message": "咩咩咩-2-689898963 连接已关闭  (队列: 0/2)"
+  },
+  {
+    "time": "10:36:18 PM",
+    "type": "success",
+    "message": "批量重置罐子结束"
+  },
+  {
+    "time": "10:36:18 PM",
+    "type": "success",
+    "message": "=== 定时任务执行完成: test ==="
+  },
+  {
+    "time": "22:39:45",
     "message": "=== 定时任务调度服务已启动 ===",
     "type": "info"
   }

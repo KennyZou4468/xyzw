@@ -1,4 +1,4 @@
-import { isDungeonOpen, merchantConfig, goldItemsConfig } from "@/utils/dreamConstants";
+import { isDungeonOpen, merchantConfig, goldItemsConfig } from "../dreamConstants.js";
 
 /**
  * 宝库、梦境类任务

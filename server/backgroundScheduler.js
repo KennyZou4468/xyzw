@@ -549,14 +549,7 @@ const executeTask = async (task) => {
   }
 
   if (task.action === "batchPlan") {
-    const accountName = task.payload?.accountName || "unknown";
-    const taskNames = Array.isArray(task.payload?.taskNames)
-      ? task.payload.taskNames
-      : [];
-    writeLog("TASK", "=== 开始批量任务执行 ===");
-    writeLog("TASK", `批量任务账号=${accountName} 任务=${taskNames.join(",") || "(none)"}`);
-
-    const result = await executeBatchPlanInBackend(task, (message, level = "info") => {
+    await executeBatchPlanInBackend(task, (message, level = "info") => {
       const mappedLevel =
         level === "error"
           ? "ERROR"
@@ -567,9 +560,6 @@ const executeTask = async (task) => {
               : "INFO";
       writeLog(mappedLevel, message);
     });
-
-    writeLog("TASK", `批量任务执行完成 success=${result.success} failed=${result.failed}`);
-    writeLog("TASK", "=== 批量任务执行结束 ===");
     return;
   }
 };
