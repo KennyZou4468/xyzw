@@ -1,5 +1,3 @@
-import { useTokenStore } from "@/stores/tokenStore";
-
 // 辅助函数
 const pickArenaTargetId = (targets) => {
   if (!targets) return null;
@@ -150,24 +148,25 @@ export class DailyTaskRunner {
   }
 
   loadSettings(roleId) {
+    const defaultSettings = {
+      arenaFormation: 1,
+      bossFormation: 1,
+      bossTimes: 2,
+      claimBottle: true,
+      payRecruit: true,
+      openBox: true,
+      arenaEnable: true,
+      claimHangUp: true,
+      claimEmail: true,
+      blackMarketPurchase: true,
+    };
+
     try {
       const raw = localStorage.getItem(`daily-settings:${roleId}`);
-      const defaultSettings = {
-        arenaFormation: 1,
-        bossFormation: 1,
-        bossTimes: 2,
-        claimBottle: true,
-        payRecruit: true,
-        openBox: true,
-        arenaEnable: true,
-        claimHangUp: true,
-        claimEmail: true,
-        blackMarketPurchase: true,
-      };
       return raw ? { ...defaultSettings, ...JSON.parse(raw) } : defaultSettings;
     } catch (error) {
       console.error("Failed to load settings:", error);
-      return null;
+      return defaultSettings;
     }
   }
 

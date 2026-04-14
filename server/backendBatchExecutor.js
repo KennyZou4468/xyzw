@@ -1,5 +1,6 @@
 import { bon, encode, getEnc, parse } from "../src/utils/bonProtocol.js";
 import { WebSocket } from "ws";
+import { DailyTaskRunner } from "../src/utils/dailyTaskRunner.js";
 
 const DEFAULT_TIMEOUT_MS = 12000;
 const DEFAULT_ACTION_DELAY_MS = 400;
@@ -41,6 +42,45 @@ const getTaskStartLabel = (taskName) => TASK_START_LABEL_MAP[taskName] || `开�
 const logCn = (logger, accountName, message, level = "info") => {
   if (typeof logger !== "function") return;
   logger(`${accountName} ${message}`, level);
+};
+
+const mapRunnerLogType = (type) => {
+  if (type === "warning") return "warn";
+  if (type === "error") return "error";
+  if (type === "success") return "success";
+  return "info";
+};
+
+const createBackendRunnerStoreAdapter = ({
+  client,
+  tokenId,
+  tokenName,
+  logger,
+}) => {
+  const adapter = {
+    gameTokens: [{ id: tokenId, name: tokenName }],
+    async sendMessageWithPromise(targetTokenId, cmd, params = {}, timeout = DEFAULT_TIMEOUT_MS) {
+      try {
+        return await client.sendRaw(cmd, params, timeout);
+      } catch (error) {
+        if (!isTransportDisconnectedError(error)) {
+          throw error;
+        }
+
+        // Mirror frontend send layer: reconnect and retry once for transport errors.
+        await client.disconnect();
+        await sleep(200);
+        await client.connect();
+        await initializeAccountSession(client);
+        return client.sendRaw(cmd, params, timeout);
+      }
+    },
+    async sendGetRoleInfo(targetTokenId) {
+      return adapter.sendMessageWithPromise(targetTokenId, "role_getroleinfo", {}, 8000);
+    },
+  };
+
+  return adapter;
 };
 
 const formatTaskDoneMessage = (taskName, accountName, taskResult) => {
@@ -735,22 +775,28 @@ const executeNamedTask = async (client, taskName, context = {}) => {
   }
 
   if (taskName === "startBatch") {
-    const startBatchSteps = [
-      "claimHangUpRewards",
-      "batchAddHangUpTime",
-      "batchclubsign",
-    ];
+    const tokenId = context.tokenId || context.accountName;
+    const tokenName = context.accountName || tokenId || "unknown";
+    const runnerStore = createBackendRunnerStoreAdapter({
+      client,
+      tokenId,
+      tokenName,
+      logger,
+    });
+    const runner = new DailyTaskRunner(runnerStore, {
+      commandDelay: Number(context.commandDelay || 500),
+      taskDelay: Number(context.taskDelay || 500),
+    });
 
-    for (const step of startBatchSteps) {
-      try {
-        await executeNamedTask(client, step, context);
-      } catch (error) {
-        if (shouldSkipTaskError(step, error)) {
-          continue;
-        }
-        throw error;
-      }
-    }
+    await runner.run(
+      tokenId,
+      {
+        onLog: (log) => {
+          logger(log.message, mapRunnerLogType(log.type));
+        },
+      },
+      context.dailyRunnerSettings || null,
+    );
     return;
   }
 
@@ -777,7 +823,7 @@ export const executeBatchPlanInBackend = async (task, logger = () => {}) => {
   let failed = 0;
   const details = [];
   const totalAccounts = tokenCredentials.length;
-  const rawMaxActive = Number(task?.payload?.maxActive || DEFAULT_MAX_ACTIVE);
+  const rawMaxActive = Number(task?.payload?.maxActive ?? task?.maxActive ?? DEFAULT_MAX_ACTIVE);
   const connectStaggerMs = Math.max(0, Number(task?.payload?.connectStaggerMs || DEFAULT_CONNECT_STAGGER_MS));
   const accountRetries = Math.max(0, Number(task?.payload?.accountRetries || DEFAULT_ACCOUNT_RETRIES));
   const maxActive = Math.max(
@@ -793,11 +839,13 @@ export const executeBatchPlanInBackend = async (task, logger = () => {}) => {
     let completedTaskCount = 0;
     let taskFailureCount = 0;
 
-    const runOnce = async () => {
-      activeConnections += 1;
-      logger(`正在连接... (队列: ${activeConnections}/${maxActive})`, "info");
+    const runOnce = async (attempt = 0) => {
+      if (attempt === 0) {
+        logger(`=== 开始执行: ${accountName} ===`, "info");
+      } else {
+        logger(`=== 尝试重试: ${accountName} (第${attempt}次) ===`, "info");
+      }
       logStructured(`[backend-exec] connecting account=${accountName}`, "info");
-      logger(`=== 开始执行: ${accountName} ===`, "info");
       await client.connect();
 
       await initializeAccountSession(client);
@@ -810,7 +858,17 @@ export const executeBatchPlanInBackend = async (task, logger = () => {}) => {
 
         const runTaskOnce = async () => {
           try {
-            const taskResult = await executeNamedTask(client, taskName, { logger, accountName });
+            const taskResult = await executeNamedTask(client, taskName, {
+              logger,
+              accountName,
+              tokenId: credential?.id || accountName,
+              dailyRunnerSettings:
+                task?.payload?.dailyRunnerSettingsByToken?.[credential?.id] ||
+                task?.payload?.dailyRunnerSettings ||
+                null,
+              commandDelay: task?.payload?.commandDelay,
+              taskDelay: task?.payload?.taskDelay,
+            });
             logStructured(`[backend-exec] account=${accountName} task=${taskName} done`, "success");
             logger(formatTaskDoneMessage(taskName, accountName, taskResult), "success");
             completedTaskCount += 1;
@@ -887,15 +945,24 @@ export const executeBatchPlanInBackend = async (task, logger = () => {}) => {
       let lastError = null;
       let accountRunResult = null;
 
+      activeConnections += 1;
+      logger(`正在连接... (队列: ${activeConnections}/${maxActive})`, "info");
+
       for (let attempt = 0; attempt <= accountRetries; attempt += 1) {
         try {
-          accountRunResult = await runOnce();
+          accountRunResult = await runOnce(attempt);
           lastError = null;
           break;
         } catch (error) {
           lastError = error;
           const messageText = String(error?.message || "").toLowerCase();
-          const canRetry = messageText.includes("websocket closed") || messageText.includes("websocket error");
+          const canRetry =
+            messageText.includes("websocket closed") ||
+            messageText.includes("websocket error") ||
+            messageText.includes("websocket not connected") ||
+            messageText.includes("timeout") ||
+            messageText.includes("econnreset") ||
+            messageText.includes("etimedout");
           if (!canRetry || attempt >= accountRetries) {
             throw error;
           }
