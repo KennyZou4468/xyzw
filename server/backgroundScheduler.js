@@ -37,6 +37,7 @@ const logPath = path.resolve(String(args.log || defaultLogPath));
 const uiLogsPath = path.resolve(String(args["ui-logs"] || defaultUiLogsPath));
 const tickMs = Number(args["tick-ms"] || 1000);
 const apiPort = args["api-port"] !== undefined ? Number(args["api-port"]) : 0;
+const dailyCatchUpMinutes = Number(args["daily-catchup-minutes"] || 180);
 const durationSeconds = args["duration-seconds"]
   ? Number(args["duration-seconds"])
   : null;
@@ -48,6 +49,11 @@ if (!Number.isFinite(tickMs) || tickMs <= 0) {
 
 if (durationSeconds !== null && (!Number.isFinite(durationSeconds) || durationSeconds <= 0)) {
   console.error("Invalid --duration-seconds, must be a positive number.");
+  process.exit(1);
+}
+
+if (!Number.isFinite(dailyCatchUpMinutes) || dailyCatchUpMinutes < 0) {
+  console.error("Invalid --daily-catchup-minutes, must be a non-negative number.");
   process.exit(1);
 }
 
@@ -497,13 +503,33 @@ const shouldRunTask = (task, now) => {
   }
 
   if (task.runType === "daily") {
-    const hh = String(now.getHours()).padStart(2, "0");
-    const mm = String(now.getMinutes()).padStart(2, "0");
-    const current = `${hh}:${mm}`;
-    if (current !== task.runTime) return false;
-
     const dailyKey = `${now.toISOString().slice(0, 10)}_${task.runTime}`;
-    return state.lastDailyKey !== dailyKey;
+    if (state.lastDailyKey === dailyKey) return false;
+
+    const [hourStr, minuteStr] = String(task.runTime || "").split(":");
+    const targetHour = Number(hourStr);
+    const targetMinute = Number(minuteStr);
+    if (!Number.isFinite(targetHour) || !Number.isFinite(targetMinute)) {
+      return false;
+    }
+
+    const targetTime = new Date(now);
+    targetTime.setHours(targetHour, targetMinute, 0, 0);
+    const targetMs = targetTime.getTime();
+    const oneMinuteMs = 60 * 1000;
+
+    // Exact minute window: preserve existing behavior.
+    if (nowMs >= targetMs && nowMs < targetMs + oneMinuteMs) {
+      return true;
+    }
+
+    // Catch-up window: if exact minute is missed, run once within configured grace period.
+    if (dailyCatchUpMinutes > 0 && nowMs > targetMs) {
+      const catchUpMs = dailyCatchUpMinutes * 60 * 1000;
+      return nowMs - targetMs <= catchUpMs;
+    }
+
+    return false;
   }
 
   if (task.runType === "cron") {
