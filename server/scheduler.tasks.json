@@ -3,7 +3,7 @@
     "id": "task_1776220605116",
     "name": "test",
     "runType": "daily",
-    "runTime": "10:40",
+    "runTime": "10:55",
     "cronExpression": null,
     "selectedTokens": [
       "dfc9778057f08bd1c830bd8c0f6db98c",
@@ -12,7 +12,10 @@
       "cb037498585610b35263577a40558345"
     ],
     "selectedTasks": [
-      "startBatch"
+      "startBatch",
+      "batchSmartSendCar",
+      "batchClaimCars",
+      "climbTower"
     ],
     "enabled": true,
     "payload": {
@@ -58,7 +61,10 @@
         "cb037498585610b35263577a40558345"
       ],
       "taskNames": [
-        "startBatch"
+        "startBatch",
+        "batchSmartSendCar",
+        "batchClaimCars",
+        "climbTower"
       ]
     },
     "action": "batchPlan",

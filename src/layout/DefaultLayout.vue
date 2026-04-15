@@ -69,6 +69,7 @@
         </div>
 
         <div class="nav-user">
+          <div class="version-badge">版本 {{ APP_VERSION }}</div>
           <!-- 主题切换按钮 -->
           <ThemeToggle />
 
@@ -203,6 +204,7 @@ import { useRouter } from 'vue-router'
 import { useMessage } from 'naive-ui'
 import { ref } from 'vue'
 import { isNowInLegionWarTime } from '@/utils/clubBattleUtils'
+import { APP_VERSION } from '@/constants/version'
 
 const tokenStore = useTokenStore();
 const router = useRouter();
@@ -313,6 +315,16 @@ const handleUserAction = async (key) => {
   gap: var(--spacing-md);
 }
 
+.version-badge {
+  font-size: 12px;
+  line-height: 1;
+  padding: 6px 10px;
+  border-radius: 999px;
+  color: var(--text-secondary);
+  background: rgba(0, 0, 0, 0.04);
+  border: 1px solid var(--border-light);
+}
+
 .user-info {
   display: flex;
   align-items: center;
@@ -333,6 +345,10 @@ const handleUserAction = async (key) => {
 }
 
 @media (max-width: 768px) {
+  .version-badge {
+    display: none;
+  }
+
   .nav-item span {
     display: none;
   }
