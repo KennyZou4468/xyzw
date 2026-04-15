@@ -3593,6 +3593,7 @@ const schedulerUiLogsApi = `${schedulerApiBase}/ui-logs`;
 const isRefreshingLogs = ref(false);
 const logSyncState = ref("idle");
 const logSyncStatusText = ref("尚未同步");
+const useBrowserScheduler = ref(true);
 
 const setLogSyncStatus = (state, text) => {
   logSyncState.value = state;
@@ -3606,6 +3607,17 @@ const fetchSchedulerTasks = async () => {
   }
   const data = await response.json();
   return Array.isArray(data?.tasks) ? data.tasks : [];
+};
+
+const checkSchedulerApiHealth = async () => {
+  try {
+    const response = await fetch(`${schedulerApiBase}/health`);
+    if (!response.ok) return false;
+    const data = await response.json();
+    return data?.ok === true;
+  } catch {
+    return false;
+  }
 };
 
 const ensureArray = (value) => {
@@ -4617,16 +4629,28 @@ const handleTokenRefreshWaiting = (data) => {
 
 // Debug: Log initial state when component mounts
 onMounted(async () => {
+  const backendSchedulerHealthy = await checkSchedulerApiHealth();
+  useBrowserScheduler.value = !backendSchedulerHealthy;
+
   const loaded = await loadPersistedLogsFromScheduler();
   if (!loaded) {
     loadPersistedLogs();
   }
   await loadSchedulerLogs();
 
-  if (acquireSchedulerLock()) {
-    // Start the task scheduler after all functions are initialized
-    scheduleTaskExecution();
-    // Start countdown timer
+  if (useBrowserScheduler.value) {
+    if (acquireSchedulerLock()) {
+      // Start the task scheduler after all functions are initialized
+      scheduleTaskExecution();
+      // Start countdown timer
+      startCountdown();
+    }
+  } else {
+    addLog({
+      time: new Date().toLocaleTimeString(),
+      message: "=== 检测到后端定时调度服务，页面本地调度已禁用 ===",
+      type: "info",
+    });
     startCountdown();
   }
 
