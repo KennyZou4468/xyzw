@@ -43,6 +43,81 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const ensureArray = (value) => (Array.isArray(value) ? value : []);
 
+const extractTokenFromSourcePayload = (payload) => {
+  if (!payload) return "";
+  if (typeof payload === "string") {
+    const trimmed = payload.trim();
+    if (!trimmed) return "";
+    try {
+      const parsed = JSON.parse(trimmed);
+      return extractTokenFromSourcePayload(parsed);
+    } catch {
+      return trimmed;
+    }
+  }
+  if (typeof payload !== "object") return "";
+  const token = payload.token || payload.data?.token || payload.result?.token;
+  if (typeof token === "string") {
+    return token.trim();
+  }
+  return "";
+};
+
+const refreshCredentialTokenFromSource = async (credential, addLog) => {
+  if (!credential || credential.importMethod !== "url" || !credential.sourceUrl) {
+    return credential;
+  }
+
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000);
+    let response;
+    try {
+      response = await fetch(credential.sourceUrl, {
+        method: "GET",
+        signal: controller.signal,
+      });
+    } finally {
+      clearTimeout(timeout);
+    }
+
+    if (!response?.ok) {
+      throw new Error(`http ${response?.status || "unknown"}`);
+    }
+
+    const contentType = String(response.headers.get("content-type") || "").toLowerCase();
+    let payload;
+    if (contentType.includes("application/json")) {
+      payload = await response.json();
+    } else {
+      payload = await response.text();
+    }
+
+    const refreshedToken = extractTokenFromSourcePayload(payload);
+    if (!refreshedToken || refreshedToken === credential.token) {
+      return credential;
+    }
+
+    addLog({
+      time: new Date().toLocaleTimeString(),
+      message: `${credential.name || credential.id} 已从URL刷新Token`,
+      type: "info",
+    });
+
+    return {
+      ...credential,
+      token: refreshedToken,
+    };
+  } catch (error) {
+    addLog({
+      time: new Date().toLocaleTimeString(),
+      message: `${credential.name || credential.id} Token刷新失败，继续使用缓存Token: ${error.message}`,
+      type: "warning",
+    });
+    return credential;
+  }
+};
+
 const TASK_LABEL_MAP = Object.freeze({
   claimHangUpRewards: "领取挂机奖励",
   batchAddHangUpTime: "挂机加钟",
@@ -987,10 +1062,10 @@ const executeNamedTask = async (client, taskName, context = {}) => {
 };
 
 const executeBatchPlanWithFrontendModules = async (task, logger = () => {}) => {
-  const tokenCredentials = ensureArray(task?.payload?.tokenCredentials);
+  const rawTokenCredentials = ensureArray(task?.payload?.tokenCredentials);
   const selectedTaskNames = ensureArray(task?.payload?.taskNames);
 
-  if (tokenCredentials.length === 0) {
+  if (rawTokenCredentials.length === 0) {
     throw new Error("batchPlan missing payload.tokenCredentials");
   }
   if (selectedTaskNames.length === 0) {
@@ -1000,6 +1075,10 @@ const executeBatchPlanWithFrontendModules = async (task, logger = () => {}) => {
   const addLog = (entry) => {
     logger(entry?.message || "", mapRunnerLogType(entry?.type));
   };
+
+  const tokenCredentials = await Promise.all(
+    rawTokenCredentials.map((item) => refreshCredentialTokenFromSource(item, addLog)),
+  );
 
   addLog({
     time: new Date().toLocaleTimeString(),

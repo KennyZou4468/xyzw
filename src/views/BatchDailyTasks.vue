@@ -3666,20 +3666,45 @@ const getTaskRunValue = (task) => {
 const getTaskTokenCount = (task) => ensureArray(task?.selectedTokens).length;
 const getTaskSelectedCount = (task) => ensureArray(task?.selectedTasks).length;
 
+const buildTokenCredential = (tokenId) => {
+  const token = tokenStore.gameTokens.find((item) => item.id === tokenId);
+  if (!token) return null;
+  return {
+    id: token.id,
+    name: token.name,
+    token: token.token,
+    wsUrl: token.wsUrl || null,
+    importMethod: token.importMethod || "manual",
+    sourceUrl: token.sourceUrl || null,
+  };
+};
+
+const credentialFingerprint = (item) => {
+  return [
+    item?.id || "",
+    item?.name || "",
+    item?.token || "",
+    item?.wsUrl || "",
+    item?.importMethod || "manual",
+    item?.sourceUrl || "",
+  ].join("|");
+};
+
+const isSameCredentialSet = (left, right) => {
+  const a = ensureArray(left).map(credentialFingerprint);
+  const b = ensureArray(right).map(credentialFingerprint);
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i += 1) {
+    if (a[i] !== b[i]) return false;
+  }
+  return true;
+};
+
 const toSchedulerApiTask = (task) => {
   const selectedTokens = ensureArray(task?.selectedTokens);
   const selectedTasks = ensureArray(task?.selectedTasks);
   const tokenCredentials = selectedTokens
-    .map((tokenId) => {
-      const token = tokenStore.gameTokens.find((item) => item.id === tokenId);
-      if (!token) return null;
-      return {
-        id: token.id,
-        name: token.name,
-        token: token.token,
-        wsUrl: token.wsUrl || null,
-      };
-    })
+    .map((tokenId) => buildTokenCredential(tokenId))
     .filter(Boolean);
 
   if (selectedTasks.length === 0) {
@@ -3719,24 +3744,15 @@ const enrichTaskTokenCredentials = (task) => {
   const payload = task?.payload || {};
   const existing = ensureArray(payload.tokenCredentials);
 
-  if (existing.length > 0 || selectedTokens.length === 0) {
+  if (selectedTokens.length === 0) {
     return { task, changed: false };
   }
 
   const tokenCredentials = selectedTokens
-    .map((tokenId) => {
-      const token = tokenStore.gameTokens.find((item) => item.id === tokenId);
-      if (!token) return null;
-      return {
-        id: token.id,
-        name: token.name,
-        token: token.token,
-        wsUrl: token.wsUrl || null,
-      };
-    })
+    .map((tokenId) => buildTokenCredential(tokenId))
     .filter(Boolean);
 
-  if (tokenCredentials.length === 0) {
+  if (tokenCredentials.length === 0 || isSameCredentialSet(existing, tokenCredentials)) {
     return { task, changed: false };
   }
 
