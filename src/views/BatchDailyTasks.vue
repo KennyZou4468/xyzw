@@ -1895,6 +1895,15 @@
               </n-tabs>
             </n-checkbox-group>
           </div>
+          <div class="setting-item">
+            <label class="setting-label">后端同 roleId 并发</label>
+            <div style="display: flex; align-items: center; gap: 10px">
+              <n-switch v-model:value="taskForm.allowSameRoleParallel" />
+              <n-text depth="3" style="font-size: 12px">
+                开启后，后端定时执行遇到同角色多账号时不再强制串行
+              </n-text>
+            </div>
+          </div>
         </div>
         <div class="modal-actions" style="margin-top: 20px; text-align: right">
           <n-button @click="showTaskModal = false" style="margin-right: 12px"
@@ -3485,6 +3494,7 @@ const taskForm = reactive({
   cronExpression: "", // Cron expression for complex scheduling
   selectedTokens: [], // Selected token IDs
   selectedTasks: [], // Selected task function names
+  allowSameRoleParallel: false, // Backend: allow same roleId tokens to run in parallel
   enabled: true, // Whether the task is enabled
 });
 
@@ -3594,6 +3604,12 @@ const isRefreshingLogs = ref(false);
 const logSyncState = ref("idle");
 const logSyncStatusText = ref("尚未同步");
 const useBrowserScheduler = ref(true);
+const schedulerSnapshotSyncIntervalMs = 60 * 1000;
+const schedulerSnapshotSyncDebounceMs = 3000;
+let schedulerSnapshotHeartbeatTimer = null;
+let schedulerSnapshotDebounceTimer = null;
+let schedulerSnapshotSyncInFlight = false;
+let lastSchedulerSnapshotSignature = "";
 
 const setLogSyncStatus = (state, text) => {
   logSyncState.value = state;
@@ -3633,6 +3649,10 @@ const normalizeScheduledTask = (task) => {
   );
   normalized.selectedTasks = ensureArray(
     normalized.selectedTasks ?? normalized.payload?.taskNames,
+  );
+
+  normalized.allowSameRoleParallel = Boolean(
+    normalized.allowSameRoleParallel ?? normalized.payload?.allowSameRoleParallel ?? false,
   );
 
   if (normalized.runType === "daily") {
@@ -3715,6 +3735,7 @@ const isSameCredentialSet = (left, right) => {
 const toSchedulerApiTask = (task) => {
   const selectedTokens = ensureArray(task?.selectedTokens);
   const selectedTasks = ensureArray(task?.selectedTasks);
+  const allowSameRoleParallel = Boolean(task?.allowSameRoleParallel);
   const tokenCredentials = selectedTokens
     .map((tokenId) => buildTokenCredential(tokenId))
     .filter(Boolean);
@@ -3724,6 +3745,7 @@ const toSchedulerApiTask = (task) => {
       ...task,
       selectedTokens,
       selectedTasks,
+      allowSameRoleParallel,
     };
   }
 
@@ -3736,10 +3758,12 @@ const toSchedulerApiTask = (task) => {
     ...task,
     selectedTokens,
     selectedTasks,
+    allowSameRoleParallel,
     action: "batchPlan",
     payload: {
       ...(task?.payload || {}),
       accountName: firstTokenName,
+      allowSameRoleParallel,
       selectedTokens,
       tokenCredentials,
       taskNames: selectedTasks,
@@ -3806,6 +3830,96 @@ const pushSchedulerTasks = async (tasks) => {
 
   const data = await response.json();
   return Array.isArray(data?.tasks) ? data.tasks : [];
+};
+
+const buildSchedulerSnapshotSignature = (tasks) => {
+  const normalized = ensureArray(tasks);
+  return normalized
+    .map((task) => {
+      const selectedTokens = ensureArray(task?.selectedTokens);
+      const selectedTasks = ensureArray(task?.selectedTasks);
+      const tokenCredentials = ensureArray(task?.payload?.tokenCredentials)
+        .map((item) => credentialFingerprint(item))
+        .join(",");
+      return `${task?.id || ""}|${selectedTokens.join(",")}|${selectedTasks.join(",")}|${tokenCredentials}`;
+    })
+    .join("||");
+};
+
+const syncSchedulerTaskSnapshotsSilently = async (reason = "heartbeat") => {
+  if (schedulerSnapshotSyncInFlight) return;
+  if (scheduledTasks.value.length === 0) return;
+
+  const currentSignature = buildSchedulerSnapshotSignature(scheduledTasks.value);
+  if (currentSignature && currentSignature === lastSchedulerSnapshotSignature) {
+    return;
+  }
+
+  schedulerSnapshotSyncInFlight = true;
+  try {
+    const normalized = normalizeScheduledTasks(scheduledTasks.value);
+    const enriched = enrichTasksTokenCredentials(normalized);
+    if (!enriched.changed) {
+      lastSchedulerSnapshotSignature = buildSchedulerSnapshotSignature(normalized);
+      return;
+    }
+
+    scheduledTasks.value = enriched.tasks;
+    localStorage.setItem("scheduledTasks", JSON.stringify(enriched.tasks));
+
+    const remoteTasks = await pushSchedulerTasks(enriched.tasks);
+    const normalizedRemoteTasks = normalizeScheduledTasks(remoteTasks);
+    scheduledTasks.value = normalizedRemoteTasks;
+    localStorage.setItem("scheduledTasks", JSON.stringify(normalizedRemoteTasks));
+    lastSchedulerSnapshotSignature = buildSchedulerSnapshotSignature(normalizedRemoteTasks);
+    console.debug(`[scheduler-sync] snapshot refreshed (${reason})`);
+  } catch (error) {
+    console.warn(`[scheduler-sync] snapshot refresh failed (${reason}):`, error);
+  } finally {
+    schedulerSnapshotSyncInFlight = false;
+  }
+};
+
+const queueSilentSchedulerSnapshotSync = (reason = "trigger") => {
+  if (schedulerSnapshotDebounceTimer) {
+    clearTimeout(schedulerSnapshotDebounceTimer);
+  }
+  schedulerSnapshotDebounceTimer = setTimeout(() => {
+    syncSchedulerTaskSnapshotsSilently(reason);
+  }, schedulerSnapshotSyncDebounceMs);
+};
+
+const handleSchedulerSnapshotActivity = () => {
+  queueSilentSchedulerSnapshotSync("activity");
+};
+
+const startSilentSchedulerSnapshotHeartbeat = () => {
+  stopSilentSchedulerSnapshotHeartbeat();
+
+  schedulerSnapshotHeartbeatTimer = setInterval(() => {
+    queueSilentSchedulerSnapshotSync("heartbeat");
+  }, schedulerSnapshotSyncIntervalMs);
+
+  window.addEventListener("focus", handleSchedulerSnapshotActivity);
+  window.addEventListener("keydown", handleSchedulerSnapshotActivity);
+  window.addEventListener("pointerdown", handleSchedulerSnapshotActivity);
+  document.addEventListener("visibilitychange", handleSchedulerSnapshotActivity);
+};
+
+const stopSilentSchedulerSnapshotHeartbeat = () => {
+  if (schedulerSnapshotHeartbeatTimer) {
+    clearInterval(schedulerSnapshotHeartbeatTimer);
+    schedulerSnapshotHeartbeatTimer = null;
+  }
+  if (schedulerSnapshotDebounceTimer) {
+    clearTimeout(schedulerSnapshotDebounceTimer);
+    schedulerSnapshotDebounceTimer = null;
+  }
+
+  window.removeEventListener("focus", handleSchedulerSnapshotActivity);
+  window.removeEventListener("keydown", handleSchedulerSnapshotActivity);
+  window.removeEventListener("pointerdown", handleSchedulerSnapshotActivity);
+  document.removeEventListener("visibilitychange", handleSchedulerSnapshotActivity);
 };
 
 // Manual execute task
@@ -3918,6 +4032,7 @@ const openTaskModal = () => {
     cronExpression: "",
     selectedTokens: [],
     selectedTasks: [],
+    allowSameRoleParallel: false,
     enabled: true,
   });
   taskScheduleSelectedGroupIds.value = [];
@@ -4035,6 +4150,7 @@ const saveTask = () => {
     cronExpression: taskForm.runType === "cron" ? taskForm.cronExpression : "",
     selectedTokens: [...taskForm.selectedTokens],
     selectedTasks: [...taskForm.selectedTasks],
+    allowSameRoleParallel: Boolean(taskForm.allowSameRoleParallel),
     enabled: taskForm.enabled,
   };
 
@@ -4440,6 +4556,24 @@ watch(
   { deep: true },
 );
 
+watch(
+  () =>
+    tokenStore.gameTokens.map((token) => {
+      return [
+        token?.id || "",
+        token?.token || "",
+        token?.wsUrl || "",
+        token?.importMethod || "",
+        token?.sourceUrl || "",
+        token?.updatedAt || "",
+      ].join("|");
+    }),
+  () => {
+    queueSilentSchedulerSnapshotSync("token-update");
+  },
+  { deep: false },
+);
+
 // 修复TimePicker的"Invalid time value"错误：确保runTime的初始值不是null
 watch(
   () => showTaskModal.value,
@@ -4632,11 +4766,25 @@ onMounted(async () => {
   const backendSchedulerHealthy = await checkSchedulerApiHealth();
   useBrowserScheduler.value = !backendSchedulerHealthy;
 
-  const loaded = await loadPersistedLogsFromScheduler();
-  if (!loaded) {
-    loadPersistedLogs();
+  if (backendSchedulerHealthy) {
+    logs.value = [];
+    backendLogCursorMs.value = 0;
+    await loadSchedulerLogs({ silent: true, resetCursor: true, tail: 1000 });
+  } else {
+    const loaded = await loadPersistedLogsFromScheduler();
+    if (!loaded) {
+      loadPersistedLogs();
+    }
+    await loadSchedulerLogs();
   }
-  await loadSchedulerLogs();
+
+  if (backendSchedulerHealthy) {
+    startBackendLogAutoSync();
+  }
+
+  lastSchedulerSnapshotSignature = buildSchedulerSnapshotSignature(scheduledTasks.value);
+  startSilentSchedulerSnapshotHeartbeat();
+  queueSilentSchedulerSnapshotSync("mount");
 
   if (useBrowserScheduler.value) {
     if (acquireSchedulerLock()) {
@@ -4684,6 +4832,10 @@ onBeforeUnmount(() => {
     clearInterval(healthCheckInterval);
     healthCheckInterval = null;
   }
+
+  stopBackendLogAutoSync();
+
+  stopSilentSchedulerSnapshotHeartbeat();
 
   releaseSchedulerLock();
 });
@@ -5611,6 +5763,10 @@ const batchLogStorageKey = "batchDailyTaskLogs";
 const logContainer = ref(null);
 const autoScrollLog = ref(true);
 const filterErrorsOnly = ref(false);
+const backendLogSyncIntervalMs = 2000;
+let backendLogSyncTimer = null;
+const backendLogCursorMs = ref(0);
+const localLogSequence = ref(0);
 const errorCount = computed(() => {
   return logs.value.filter((log) => log.type === "error").length;
 });
@@ -5837,6 +5993,10 @@ const persistLogs = () => {
     console.warn("Failed to persist logs:", error);
   }
 
+  if (!useBrowserScheduler.value) {
+    return;
+  }
+
   setLogSyncStatus("syncing", "同步中...");
 
   fetch(schedulerUiLogsApi, {
@@ -5866,8 +6026,14 @@ const refreshLogsFromScheduler = async () => {
   setLogSyncStatus("syncing", "正在刷新后端日志...");
 
   try {
+    if (!useBrowserScheduler.value) {
+      await loadSchedulerLogs({ resetCursor: true, tail: 1000 });
+      message.success("已刷新后端日志");
+      return;
+    }
+
     const loaded = await loadPersistedLogsFromScheduler();
-    await loadSchedulerLogs();
+    await loadSchedulerLogs({ resetCursor: true, tail: 1000 });
 
     if (loaded) {
       message.success("已从后端刷新日志");
@@ -5879,17 +6045,92 @@ const refreshLogsFromScheduler = async () => {
   }
 };
 
+const startBackendLogAutoSync = () => {
+  if (backendLogSyncTimer) {
+    clearInterval(backendLogSyncTimer);
+    backendLogSyncTimer = null;
+  }
+
+  backendLogSyncTimer = setInterval(() => {
+    if (isRefreshingLogs.value) return;
+    loadSchedulerLogs({ silent: true });
+  }, backendLogSyncIntervalMs);
+};
+
+const stopBackendLogAutoSync = () => {
+  if (!backendLogSyncTimer) return;
+  clearInterval(backendLogSyncTimer);
+  backendLogSyncTimer = null;
+};
+
+const parseLogTimeStringToTimestamp = (timeText) => {
+  if (typeof timeText !== "string") return null;
+  const text = timeText.trim();
+  if (!text) return null;
+
+  const match = text.match(/^(\d{1,2}):(\d{2}):(\d{2})(?:\s*(AM|PM))?$/i);
+  if (!match) return null;
+
+  let hour = Number(match[1]);
+  const minute = Number(match[2]);
+  const second = Number(match[3]);
+  const ampm = (match[4] || "").toUpperCase();
+
+  if (ampm === "PM" && hour < 12) hour += 12;
+  if (ampm === "AM" && hour === 12) hour = 0;
+
+  const now = new Date();
+  const dt = new Date(now);
+  dt.setHours(hour, minute, second, 0);
+
+  const ts = dt.getTime();
+  return Number.isFinite(ts) ? ts : null;
+};
+
 const normalizeLogs = (items) => {
+  let fallbackBase = Date.now();
+  const normalized = ensureArray(items)
+    .map((item, index) => {
+      const explicitTs = Number(item?.timestamp || item?.ts || item?.__ts || 0);
+      const parsedFromTime = parseLogTimeStringToTimestamp(item?.time);
+      const parsedTs = Number(
+        Number.isFinite(explicitTs) && explicitTs > 0
+          ? explicitTs
+          : parsedFromTime || fallbackBase + index,
+      );
+      const timestamp = Number.isFinite(parsedTs) ? parsedTs : Date.now();
+      fallbackBase = Math.max(fallbackBase, timestamp);
+
+      let seq = Number(item?.sequence || item?.__seq || 0);
+      if (!Number.isFinite(seq) || seq <= 0) {
+        seq = index + 1;
+      }
+
+      return {
+        ...item,
+        timestamp,
+        sequence: seq,
+      };
+    })
+    .sort((a, b) => {
+      const ta = Number(a.timestamp || 0);
+      const tb = Number(b.timestamp || 0);
+      if (ta !== tb) return ta - tb;
+      return Number(a.sequence || 0) - Number(b.sequence || 0);
+    });
+
   const maxLogEntries = batchSettings.maxLogEntries || 1000;
-  return items.slice(-maxLogEntries);
+  return normalized.slice(-maxLogEntries);
 };
 
 const mergeLogs = (baseLogs, extraLogs) => {
   const seen = new Set();
   const merged = [];
 
-  [...baseLogs, ...extraLogs].forEach((item) => {
-    const key = `${item.time}|${item.type}|${item.message}`;
+  [...ensureArray(baseLogs), ...ensureArray(extraLogs)].forEach((item) => {
+    const ts = Number(item?.timestamp || item?.ts || item?.__ts || 0);
+    const seq = Number(item?.sequence || item?.__seq || 0);
+    const key = `${ts}|${seq}|${item?.type || "info"}|${item?.message || ""}`;
     if (seen.has(key)) return;
     seen.add(key);
     merged.push(item);
@@ -5898,17 +6139,53 @@ const mergeLogs = (baseLogs, extraLogs) => {
   return normalizeLogs(merged);
 };
 
-const loadSchedulerLogs = async () => {
+const syncBackendLogCursor = () => {
+  let maxTs = 0;
+  for (const item of logs.value) {
+    const ts = Number(item?.timestamp || 0);
+    if (Number.isFinite(ts) && ts > maxTs) {
+      maxTs = ts;
+    }
+  }
+  backendLogCursorMs.value = Math.max(backendLogCursorMs.value, maxTs);
+};
+
+const loadSchedulerLogs = async (options = {}) => {
+  const silent = options.silent === true;
+  const resetCursor = options.resetCursor === true;
+  const tail = Number(options.tail || 500);
   try {
-    const response = await fetch(`${schedulerApiBase}/logs?tail=500`);
+    const sinceMs = resetCursor ? 0 : Number(backendLogCursorMs.value || 0);
+    const response = await fetch(
+      `${schedulerApiBase}/logs?tail=${tail}&sinceMs=${sinceMs}`,
+    );
     if (!response.ok) return;
 
     const data = await response.json();
-    const remoteLogs = Array.isArray(data?.logs) ? data.logs : [];
+    const remoteLogs = ensureArray(data?.logs).map((item, index) => ({
+      ...item,
+      timestamp: Number(item?.timestamp || Date.now()),
+      sequence: Number(item?.sequence || index + 1),
+    }));
     if (remoteLogs.length === 0) return;
 
+    const remoteMaxTs = remoteLogs.reduce((max, item) => {
+      const ts = Number(item?.timestamp || 0);
+      return Number.isFinite(ts) && ts > max ? ts : max;
+    }, 0);
+
     logs.value = mergeLogs(logs.value, remoteLogs);
+    if (remoteMaxTs > 0) {
+      backendLogCursorMs.value = Math.max(backendLogCursorMs.value, remoteMaxTs);
+    }
     persistLogs();
+
+    if (!silent) {
+      setLogSyncStatus(
+        "success",
+        `已增量同步 ${new Date().toLocaleTimeString("zh-CN", { hour12: false })}`,
+      );
+    }
   } catch {
     // scheduler API not available, ignore
   }
@@ -5922,6 +6199,7 @@ const loadPersistedLogsFromScheduler = async () => {
     const data = await response.json();
     const remoteLogs = Array.isArray(data?.logs) ? data.logs : [];
     logs.value = normalizeLogs(remoteLogs);
+    syncBackendLogCursor();
     localStorage.setItem(batchLogStorageKey, JSON.stringify(logs.value));
     if (remoteLogs.length > 0) {
       setLogSyncStatus(
@@ -5946,6 +6224,7 @@ const loadPersistedLogs = () => {
 
     const parsed = JSON.parse(raw);
     logs.value = normalizeLogs(Array.isArray(parsed) ? parsed : []);
+    syncBackendLogCursor();
     persistLogs();
   } catch (error) {
     console.warn("Failed to load persisted logs:", error);
@@ -5956,14 +6235,19 @@ const loadPersistedLogs = () => {
 // 注: pickArenaTargetId, FISH_TARGET, ARENA_TARGET, getTodayStartSec, isTodayAvailable, calculateMonthProgress 已从 @/utils/batch 导入
 
 const addLog = (log) => {
+  localLogSequence.value += 1;
+  const enrichedLog = {
+    ...log,
+    timestamp: Date.now(),
+    sequence: localLogSequence.value,
+  };
+
   // 添加日志数据到数组
-  logs.value.push(log);
+  logs.value.push(enrichedLog);
 
   // 限制logs数组大小，防止内存占用过大
-  const maxLogEntries = batchSettings.maxLogEntries || 1000;
-  if (logs.value.length > maxLogEntries) {
-    logs.value = logs.value.slice(-maxLogEntries);
-  }
+  logs.value = normalizeLogs(logs.value);
+  syncBackendLogCursor();
 
   persistLogs();
 

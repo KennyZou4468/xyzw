@@ -1,5 +1,7 @@
 import { bon, encode, getEnc, parse } from "../src/utils/bonProtocol.js";
 import { WebSocket } from "ws";
+import fs from "node:fs";
+import path from "node:path";
 import { DailyTaskRunner } from "../src/utils/dailyTaskRunner.js";
 import {
   availableTasks,
@@ -38,10 +40,97 @@ const DEFAULT_ACTION_DELAY_MS = 400;
 const DEFAULT_MAX_ACTIVE = 2;
 const DEFAULT_CONNECT_STAGGER_MS = 300;
 const DEFAULT_ACCOUNT_RETRIES = 1;
+const WS_RETRY_BASE_MS = 1000;
+const WS_MAX_RETRIES = 3;
+const SCHEDULER_TASKS_PATH = path.resolve(process.cwd(), "server/scheduler.tasks.json");
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const ensureArray = (value) => (Array.isArray(value) ? value : []);
+
+const parseTimestamp = (value) => {
+  if (!value) return 0;
+  const ms = Date.parse(String(value));
+  return Number.isFinite(ms) ? ms : 0;
+};
+
+const buildLatestCredentialMap = (tasks) => {
+  const map = new Map();
+  const scoreMap = new Map();
+
+  ensureArray(tasks).forEach((task, taskIndex) => {
+    const credentials = ensureArray(task?.payload?.tokenCredentials);
+    credentials.forEach((credential, credentialIndex) => {
+      if (!credential?.id) return;
+      const timestamp = Math.max(
+        parseTimestamp(credential.updatedAt),
+        parseTimestamp(credential.upgradedAt),
+      );
+      const fallbackOrder = taskIndex * 1000 + credentialIndex;
+      const score = timestamp > 0 ? timestamp : fallbackOrder;
+      const prev = scoreMap.get(credential.id) || -1;
+      if (score >= prev) {
+        map.set(credential.id, credential);
+        scoreMap.set(credential.id, score);
+      }
+    });
+  });
+
+  return map;
+};
+
+const loadGlobalLatestCredentialMap = () => {
+  try {
+    if (!fs.existsSync(SCHEDULER_TASKS_PATH)) {
+      return new Map();
+    }
+
+    const text = fs.readFileSync(SCHEDULER_TASKS_PATH, "utf8");
+    if (!text.trim()) {
+      return new Map();
+    }
+
+    const tasks = JSON.parse(text);
+    return buildLatestCredentialMap(tasks);
+  } catch {
+    return new Map();
+  }
+};
+
+const mergeWithLatestTokenCredentials = (tokenCredentials, addLog) => {
+  const latestMap = loadGlobalLatestCredentialMap();
+  if (latestMap.size === 0) return tokenCredentials;
+
+  let refreshedCount = 0;
+  const merged = tokenCredentials.map((credential) => {
+    const latest = latestMap.get(credential?.id);
+    if (!latest) return credential;
+
+    const tokenChanged = String(latest.token || "") !== String(credential.token || "");
+    const wsChanged = String(latest.wsUrl || "") !== String(credential.wsUrl || "");
+    if (!tokenChanged && !wsChanged) return credential;
+
+    refreshedCount += 1;
+    return {
+      ...credential,
+      token: latest.token || credential.token,
+      wsUrl: latest.wsUrl || credential.wsUrl || null,
+      importMethod: latest.importMethod || credential.importMethod,
+      sourceUrl: latest.sourceUrl || credential.sourceUrl || null,
+      updatedAt: latest.updatedAt || credential.updatedAt,
+    };
+  });
+
+  if (refreshedCount > 0) {
+    addLog({
+      time: new Date().toLocaleTimeString(),
+      message: `Token预检：检测到 ${refreshedCount} 个账号快照过旧，已自动替换为最新凭证`,
+      type: "info",
+    });
+  }
+
+  return merged;
+};
 
 const extractTokenFromSourcePayload = (payload) => {
   if (!payload) return "";
@@ -61,6 +150,50 @@ const extractTokenFromSourcePayload = (payload) => {
     return token.trim();
   }
   return "";
+};
+
+const parseRoleSessionFromCredentialToken = (rawToken) => {
+  try {
+    const tokenText = parseActualToken(String(rawToken || ""));
+    if (!tokenText) {
+      return { roleId: null, sessId: null };
+    }
+
+    if (tokenText.trim().startsWith("{")) {
+      const obj = JSON.parse(tokenText);
+      return {
+        roleId: Number(obj?.roleId || 0) || null,
+        sessId: Number(obj?.sessId || 0) || null,
+      };
+    }
+
+    return { roleId: null, sessId: null };
+  } catch {
+    return { roleId: null, sessId: null };
+  }
+};
+
+const sanitizeTokenCredentialsBeforeRun = (tokenCredentials, addLog) => {
+  const seenTokenIds = new Set();
+  const sanitized = [];
+
+  for (const credential of ensureArray(tokenCredentials)) {
+    if (!credential?.id) continue;
+
+    if (seenTokenIds.has(credential.id)) {
+      addLog({
+        time: new Date().toLocaleTimeString(),
+        message: `Token预检：检测到重复tokenId，已跳过重复项 ${credential.name || credential.id}`,
+        type: "warning",
+      });
+      continue;
+    }
+    seenTokenIds.add(credential.id);
+
+    sanitized.push(credential);
+  }
+
+  return sanitized;
 };
 
 const refreshCredentialTokenFromSource = async (credential, addLog) => {
@@ -116,6 +249,60 @@ const refreshCredentialTokenFromSource = async (credential, addLog) => {
     });
     return credential;
   }
+};
+
+const regenerateTokenSessionFields = (credential) => {
+  try {
+    if (!credential?.token) return credential;
+
+    const tokenText = parseActualToken(String(credential.token || ""));
+    if (!tokenText || !tokenText.trim().startsWith("{")) {
+      return credential;
+    }
+
+    const parsed = JSON.parse(tokenText);
+    if (!parsed?.roleToken || !parsed?.roleId) {
+      return credential;
+    }
+
+    const now = Date.now();
+    const sessId = now * 100 + Math.floor(Math.random() * 100);
+    const connId = now + Math.floor(Math.random() * 10);
+
+    return {
+      ...credential,
+      token: JSON.stringify({
+        ...parsed,
+        sessId,
+        connId,
+        isRestore: 0,
+      }),
+      updatedAt: new Date().toISOString(),
+    };
+  } catch {
+    return credential;
+  }
+};
+
+const regenerateSessionFieldsForCredentials = (tokenCredentials, addLog) => {
+  let changedCount = 0;
+  const next = ensureArray(tokenCredentials).map((credential) => {
+    const regenerated = regenerateTokenSessionFields(credential);
+    if (String(regenerated?.token || "") !== String(credential?.token || "")) {
+      changedCount += 1;
+    }
+    return regenerated;
+  });
+
+  if (changedCount > 0) {
+    addLog({
+      time: new Date().toLocaleTimeString(),
+      message: `Token预检：已为 ${changedCount} 个账号刷新会话参数(sessId/connId)`,
+      type: "info",
+    });
+  }
+
+  return next;
 };
 
 const TASK_LABEL_MAP = Object.freeze({
@@ -618,6 +805,16 @@ const isTransportDisconnectedError = (error) => {
   );
 };
 
+const isRetryableWsCloseCode = (code) => {
+  return code === 1006 || code === 4001;
+};
+
+const shouldRetryConnectError = (error) => {
+  const code = Number(error?.code || 0);
+  if (isRetryableWsCloseCode(code)) return true;
+  return isTransportDisconnectedError(error);
+};
+
 const initializeAccountSession = async (client) => {
   await client.sendRaw("role_getroleinfo", {
     clientVersion: "2.21.2-fa918e1997301834-wx",
@@ -639,8 +836,12 @@ class BackendWsClient {
     this.heartbeatTimer = null;
   }
 
-  connect(timeoutMs = DEFAULT_TIMEOUT_MS) {
-    return new Promise((resolve, reject) => {
+  async connect(timeoutMs = DEFAULT_TIMEOUT_MS, maxRetries = WS_MAX_RETRIES) {
+    let lastError = null;
+
+    for (let attempt = 0; attempt <= maxRetries; attempt += 1) {
+      try {
+        await new Promise((resolve, reject) => {
       const ws = new WebSocket(this.url);
       const timer = setTimeout(() => {
         try {
@@ -652,28 +853,81 @@ class BackendWsClient {
       }, timeoutMs);
 
       ws.binaryType = "arraybuffer";
+      let opened = false;
+      let settled = false;
 
       ws.onopen = () => {
+        opened = true;
+        settled = true;
         clearTimeout(timer);
         this.ws = ws;
         this.startHeartbeat();
         resolve();
       };
 
-      ws.onerror = () => {
-        clearTimeout(timer);
-        reject(new Error("websocket error"));
+      ws.onerror = (event) => {
+        this.logger(`[ws:error] ${this.url} event=${event?.type || "unknown"}`, "warn");
+        if (!opened && !settled) {
+          settled = true;
+          clearTimeout(timer);
+          reject(new Error("websocket error"));
+        }
       };
 
-      ws.onclose = () => {
+      ws.onclose = (event) => {
+        const code = Number(event?.code || 0);
+        const reason = String(event?.reason || "");
+        this.logger(
+          `[ws:close] ${this.url} code=${code || "unknown"} reason=${reason || "none"}`,
+          isRetryableWsCloseCode(code) ? "warn" : "info",
+        );
+        clearTimeout(timer);
+        if (this.ws === ws) {
+          this.ws = null;
+        }
         this.stopHeartbeat();
         this.rejectAllPending("websocket closed");
+
+        if (!opened && !settled) {
+          settled = true;
+          const err = new Error(`websocket closed code=${code} reason=${reason}`);
+          err.code = code;
+          reject(err);
+        }
       };
 
       ws.onmessage = (evt) => {
         this.handleMessage(evt.data);
       };
-    });
+        });
+        return;
+      } catch (error) {
+        lastError = error;
+        const retryable = shouldRetryConnectError(error);
+        const closeCode = Number(error?.code || 0);
+        const isImmediateAuthLikeClose = isRetryableWsCloseCode(closeCode);
+        const reachedAuthLikeRetryCap = isImmediateAuthLikeClose && attempt >= 1;
+
+        if (!retryable || attempt >= maxRetries || reachedAuthLikeRetryCap) {
+          if (reachedAuthLikeRetryCap) {
+            this.logger(
+              `[ws:retry-stop] ${this.url} closeCode=${closeCode} reason=repeat-auth-like-close`,
+              "warn",
+            );
+          }
+          break;
+        }
+
+        const delay = WS_RETRY_BASE_MS * 2 ** attempt;
+        this.logger(
+          `[ws:retry] ${this.url} attempt=${attempt + 1}/${maxRetries} delay=${delay}ms reason=${error.message}`,
+          "warn",
+        );
+        await sleep(delay);
+      }
+    }
+
+    throw lastError || new Error("websocket connect failed");
   }
 
   startHeartbeat() {
@@ -1117,9 +1371,22 @@ const executeBatchPlanWithFrontendModules = async (task, logger = () => {}) => {
     logger(entry?.message || "", mapRunnerLogType(entry?.type));
   };
 
-  const tokenCredentials = await Promise.all(
-    rawTokenCredentials.map((item) => refreshCredentialTokenFromSource(item, addLog)),
+  const latestTokenCredentials = mergeWithLatestTokenCredentials(rawTokenCredentials, addLog);
+
+  const tokenCredentialsRaw = await Promise.all(
+    latestTokenCredentials.map((item) => refreshCredentialTokenFromSource(item, addLog)),
   );
+
+  const tokenCredentialsSanitized = sanitizeTokenCredentialsBeforeRun(tokenCredentialsRaw, addLog);
+
+  const tokenCredentials = regenerateSessionFieldsForCredentials(
+    tokenCredentialsSanitized,
+    addLog,
+  );
+
+  if (tokenCredentials.length === 0) {
+    throw new Error("Token预检失败：没有可用账号（请检查是否全为重复角色或无效凭证）");
+  }
 
   addLog({
     time: new Date().toLocaleTimeString(),
@@ -1164,6 +1431,34 @@ const executeBatchPlanWithFrontendModules = async (task, logger = () => {}) => {
     receiverId: task?.payload?.receiverId || "",
     password: task?.payload?.password || "",
   };
+
+  const allowSameRoleParallel = Boolean(
+    task?.payload?.allowSameRoleParallel ?? task?.allowSameRoleParallel ?? false,
+  );
+
+  const roleGroups = new Map();
+  tokenCredentials.forEach((credential) => {
+    const { roleId } = parseRoleSessionFromCredentialToken(credential?.token);
+    if (!roleId) return;
+    const count = roleGroups.get(roleId) || 0;
+    roleGroups.set(roleId, count + 1);
+  });
+
+  const hasDuplicateRole = Array.from(roleGroups.values()).some((count) => count > 1);
+  if (hasDuplicateRole && batchSettings.maxActive > 1 && !allowSameRoleParallel) {
+    batchSettings.maxActive = 1;
+    addLog({
+      time: new Date().toLocaleTimeString(),
+      message: "检测到同一角色多账号，已自动切换为串行执行以避免连接互踢",
+      type: "warning",
+    });
+  } else if (hasDuplicateRole && batchSettings.maxActive > 1 && allowSameRoleParallel) {
+    addLog({
+      time: new Date().toLocaleTimeString(),
+      message: "检测到同一角色多账号，已按任务配置允许并发执行",
+      type: "info",
+    });
+  }
 
   const tokenStore = createFrontendLikeBackendTokenStore({ tokenCredentials, logger, addLog });
   const connectionManager = createConnectionManager({ tokenStore, batchSettings, addLog });
@@ -1329,12 +1624,10 @@ const executeBatchPlanWithFrontendModules = async (task, logger = () => {}) => {
   const activity = getActivityStatus();
 
   const originalConsoleError = console.error;
-  // Frontend task modules sometimes call console.error before addLog;
-  // suppress raw stderr noise to keep backend output consistent with UI logs.
   console.error = () => {};
 
-  const taskPromises = selectedTaskNames.map(async (taskName) => {
-    if (shouldStop.value) return;
+  for (const taskName of selectedTaskNames) {
+    if (shouldStop.value) break;
 
     if (["batchbaoku45", "batchbaoku13"].includes(taskName) && !activity.isbaokuActivityOpen) {
       addLog({
@@ -1342,7 +1635,7 @@ const executeBatchPlanWithFrontendModules = async (task, logger = () => {}) => {
         message: `跳过任务: ${taskLabelMap.get(taskName) || taskName} (不在宝库开放时间)`,
         type: "warning",
       });
-      return;
+      continue;
     }
 
     if (["batchmengjing", "batchBuyDreamItems"].includes(taskName) && !activity.ismengjingActivityOpen) {
@@ -1351,7 +1644,7 @@ const executeBatchPlanWithFrontendModules = async (task, logger = () => {}) => {
         message: `跳过任务: ${taskLabelMap.get(taskName) || taskName} (不在梦境开放时间)`,
         type: "warning",
       });
-      return;
+      continue;
     }
 
     if (["batchSmartSendCar", "batchClaimCars"].includes(taskName) && !activity.isCarActivityOpen) {
@@ -1360,7 +1653,7 @@ const executeBatchPlanWithFrontendModules = async (task, logger = () => {}) => {
         message: `跳过任务: ${taskLabelMap.get(taskName) || taskName} (不在发车开放时间)`,
         type: "warning",
       });
-      return;
+      continue;
     }
 
     if (["batchTopUpArena", "batcharenafight"].includes(taskName) && !activity.isarenaActivityOpen) {
@@ -1369,7 +1662,7 @@ const executeBatchPlanWithFrontendModules = async (task, logger = () => {}) => {
         message: `跳过任务: ${taskLabelMap.get(taskName) || taskName} (不在竞技场开放时间)`,
         type: "warning",
       });
-      return;
+      continue;
     }
 
     if (["climbWeirdTower", "batchUseItems", "batchMergeItems", "batchClaimFreeEnergy"].includes(taskName) && !activity.isWeirdTowerActivityOpen) {
@@ -1378,7 +1671,7 @@ const executeBatchPlanWithFrontendModules = async (task, logger = () => {}) => {
         message: `跳过任务: ${taskLabelMap.get(taskName) || taskName} (不在怪异塔开放时间)`,
         type: "warning",
       });
-      return;
+      continue;
     }
 
     addLog({
@@ -1394,7 +1687,7 @@ const executeBatchPlanWithFrontendModules = async (task, logger = () => {}) => {
         message: `任务函数不存在: ${taskName}`,
         type: "error",
       });
-      return;
+      continue;
     }
 
     if (["batchOpenBox", "batchOpenBoxByPoints", "batchFish", "batchRecruit", "batchLegacyGiftSendEnhanced"].includes(taskName)) {
@@ -1402,10 +1695,9 @@ const executeBatchPlanWithFrontendModules = async (task, logger = () => {}) => {
     } else {
       await fn();
     }
-  });
+  }
 
   try {
-    await Promise.all(taskPromises);
     addLog({
       time: new Date().toLocaleTimeString(),
       message: `=== 定时任务执行完成: ${task?.name || task?.id || "batchPlan"} ===`,
@@ -1429,227 +1721,9 @@ const executeBatchPlanWithFrontendModules = async (task, logger = () => {}) => {
 };
 
 export const executeBatchPlanInBackend = async (task, logger = () => {}) => {
-  if (task?.payload?.legacyBackendExecutor !== true) {
-    return executeBatchPlanWithFrontendModules(task, logger);
+  if (task?.payload?.legacyBackendExecutor === true) {
+    logger("检测到 legacyBackendExecutor=true，已忽略并统一走前端等价执行链路", "info");
   }
 
-  const tokenCredentials = ensureArray(task?.payload?.tokenCredentials);
-  const taskNames = ensureArray(task?.payload?.taskNames);
-  const debugLogs = task?.payload?.debugLogs === true;
-  const logStructured = (message, level = "info") => {
-    if (!debugLogs) return;
-    logger(message, level);
-  };
-
-  if (tokenCredentials.length === 0) {
-    throw new Error("batchPlan missing payload.tokenCredentials");
-  }
-  if (taskNames.length === 0) {
-    throw new Error("batchPlan missing payload.taskNames");
-  }
-
-  let success = 0;
-  let failed = 0;
-  const details = [];
-  const totalAccounts = tokenCredentials.length;
-  const rawMaxActive = Number(task?.payload?.maxActive ?? task?.maxActive ?? DEFAULT_MAX_ACTIVE);
-  const connectStaggerMs = Math.max(0, Number(task?.payload?.connectStaggerMs || DEFAULT_CONNECT_STAGGER_MS));
-  const accountRetries = Math.max(0, Number(task?.payload?.accountRetries || DEFAULT_ACCOUNT_RETRIES));
-  const maxActive = Math.max(
-    1,
-    Math.min(totalAccounts, Number.isFinite(rawMaxActive) ? Math.floor(rawMaxActive) : totalAccounts),
-  );
-  let activeConnections = 0;
-
-  const runAccount = async (credential, workerIndex) => {
-    const accountName = credential?.name || credential?.id || "unknown";
-    const wsUrl = buildWsUrl(credential);
-    const client = new BackendWsClient(wsUrl, logger);
-    let completedTaskCount = 0;
-    let taskFailureCount = 0;
-
-    const runOnce = async (attempt = 0) => {
-      if (attempt === 0) {
-        logger(`=== 开始执行: ${accountName} ===`, "info");
-      } else {
-        logger(`=== 尝试重试: ${accountName} (第${attempt}次) ===`, "info");
-      }
-      logStructured(`[backend-exec] connecting account=${accountName}`, "info");
-      await client.connect();
-
-      await initializeAccountSession(client);
-
-      for (const taskName of taskNames) {
-        const taskLabel = getTaskLabel(taskName);
-        const taskStartLabel = getTaskStartLabel(taskName);
-        logger(`=== ${taskStartLabel}: ${accountName} ===`, "info");
-        logStructured(`[backend-exec] account=${accountName} task=${taskName} start`, "info");
-
-        const runTaskOnce = async () => {
-          try {
-            const taskResult = await executeNamedTask(client, taskName, {
-              logger,
-              accountName,
-              tokenId: credential?.id || accountName,
-              dailyRunnerSettings:
-                task?.payload?.dailyRunnerSettingsByToken?.[credential?.id] ||
-                task?.payload?.dailyRunnerSettings ||
-                null,
-              commandDelay: task?.payload?.commandDelay,
-              taskDelay: task?.payload?.taskDelay,
-            });
-            logStructured(`[backend-exec] account=${accountName} task=${taskName} done`, "success");
-            logger(formatTaskDoneMessage(taskName, accountName, taskResult), "success");
-            completedTaskCount += 1;
-            return true;
-          } catch (error) {
-            if (shouldSkipTaskError(taskName, error)) {
-              logStructured(
-                `[backend-exec] account=${accountName} task=${taskName} skipped: ${error.message}`,
-                "warn",
-              );
-              logger(`${accountName} ${taskLabel}跳过: ${error.message}`, "warn");
-              completedTaskCount += 1;
-              return true;
-            }
-            throw error;
-          }
-        };
-
-        try {
-          await runTaskOnce();
-        } catch (error) {
-          if (isTransportDisconnectedError(error)) {
-            logStructured(
-              `[backend-exec] account=${accountName} task=${taskName} reconnecting after transport error: ${error.message}`,
-              "warn",
-            );
-            await client.disconnect();
-            await sleep(200);
-            await client.connect();
-            await initializeAccountSession(client);
-            try {
-              await runTaskOnce();
-            } catch (retryError) {
-              if (shouldSkipTaskError(taskName, retryError)) {
-                logStructured(
-                  `[backend-exec] account=${accountName} task=${taskName} skipped after reconnect: ${retryError.message}`,
-                  "warn",
-                );
-                logger(`${accountName} ${taskLabel}重连后跳过: ${retryError.message}`, "warn");
-                completedTaskCount += 1;
-              } else {
-                taskFailureCount += 1;
-                logStructured(
-                  `[backend-exec] account=${accountName} task=${taskName} failed after reconnect: ${retryError.message}`,
-                  "error",
-                );
-                logger(`${accountName} ${taskLabel}失败: ${retryError.message}`, "error");
-              }
-            }
-            continue;
-          }
-          taskFailureCount += 1;
-          logStructured(
-            `[backend-exec] account=${accountName} task=${taskName} failed: ${error.message}`,
-            "error",
-          );
-          logger(`${accountName} ${taskLabel}失败: ${error.message}`, "error");
-          continue;
-        }
-      }
-
-      return {
-        completedTaskCount,
-        taskFailureCount,
-      };
-    };
-
-    // Spread worker startup slightly to avoid all accounts dialing at the same millisecond.
-    if (connectStaggerMs > 0) {
-      await sleep(workerIndex * connectStaggerMs);
-    }
-
-    try {
-      let lastError = null;
-      let accountRunResult = null;
-
-      activeConnections += 1;
-      logger(`正在连接... (队列: ${activeConnections}/${maxActive})`, "info");
-
-      for (let attempt = 0; attempt <= accountRetries; attempt += 1) {
-        try {
-          accountRunResult = await runOnce(attempt);
-          lastError = null;
-          break;
-        } catch (error) {
-          lastError = error;
-          const messageText = String(error?.message || "").toLowerCase();
-          const canRetry =
-            messageText.includes("websocket closed") ||
-            messageText.includes("websocket error") ||
-            messageText.includes("websocket not connected") ||
-            messageText.includes("timeout") ||
-            messageText.includes("econnreset") ||
-            messageText.includes("etimedout");
-          if (!canRetry || attempt >= accountRetries) {
-            throw error;
-          }
-          logger(`${accountName} 连接异常，正在重试 (${attempt + 1}/${accountRetries})...`, "warn");
-          await client.disconnect();
-          await sleep(500 + attempt * 500);
-        }
-      }
-
-      if (!accountRunResult && lastError) {
-        throw lastError;
-      }
-
-      completedTaskCount = accountRunResult?.completedTaskCount || completedTaskCount;
-      taskFailureCount = accountRunResult?.taskFailureCount || taskFailureCount;
-
-      const accountOk = completedTaskCount > 0;
-      if (accountOk) {
-        success += 1;
-      } else {
-        failed += 1;
-      }
-      details.push({
-        accountName,
-        ok: accountOk,
-        completedTaskCount,
-        taskFailureCount,
-      });
-    } catch (error) {
-      failed += 1;
-      details.push({ accountName, ok: false, error: error.message });
-      logStructured(`[backend-exec] account=${accountName} failed: ${error.message}`, "error");
-      logger(`${accountName} 执行失败: ${error.message}`, "error");
-    } finally {
-      await client.disconnect();
-      activeConnections = Math.max(0, activeConnections - 1);
-      logger(`${accountName} 连接已关闭  (队列: ${activeConnections}/${maxActive})`, "info");
-    }
-  };
-
-  let cursor = 0;
-  const workerCount = Math.min(maxActive, tokenCredentials.length);
-  const workers = Array.from({ length: workerCount }, async () => {
-    while (true) {
-      const current = cursor;
-      cursor += 1;
-      if (current >= tokenCredentials.length) {
-        break;
-      }
-      await runAccount(tokenCredentials[current], current);
-    }
-  });
-
-  await Promise.all(workers);
-
-  return {
-    success,
-    failed,
-    details,
-  };
+  return executeBatchPlanWithFrontendModules(task, logger);
 };

@@ -13,6 +13,7 @@ const __dirname = path.dirname(__filename);
 const defaultTasksPath = path.resolve(__dirname, "scheduler.tasks.json");
 const defaultLogPath = path.resolve(__dirname, "scheduler.log");
 const defaultUiLogsPath = path.resolve(__dirname, "scheduler.ui.logs.json");
+const defaultLockPath = path.resolve(__dirname, "scheduler.lock");
 
 const parseArgs = (argv) => {
   const args = {};
@@ -38,6 +39,7 @@ const uiLogsPath = path.resolve(String(args["ui-logs"] || defaultUiLogsPath));
 const tickMs = Number(args["tick-ms"] || 1000);
 const apiPort = args["api-port"] !== undefined ? Number(args["api-port"]) : 0;
 const dailyCatchUpMinutes = Number(args["daily-catchup-minutes"] || 180);
+const lockPath = path.resolve(String(args.lock || defaultLockPath));
 const durationSeconds = args["duration-seconds"]
   ? Number(args["duration-seconds"])
   : null;
@@ -62,6 +64,7 @@ let stopping = false;
 let intervalHandle = null;
 let stopHandle = null;
 let apiServer = null;
+let instanceLockAcquired = false;
 
 const ensureParentDir = (filePath) => {
   const dir = path.dirname(filePath);
@@ -73,6 +76,92 @@ const writeLog = (level, message) => {
   console.log(line);
   ensureParentDir(logPath);
   fs.appendFileSync(logPath, `${line}\n`, "utf8");
+};
+
+const isProcessRunning = (pid) => {
+  if (!Number.isInteger(pid) || pid <= 0) {
+    return false;
+  }
+
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+const tryAcquireLockFile = () => {
+  ensureParentDir(lockPath);
+  const content = JSON.stringify({ pid: process.pid, startedAt: new Date().toISOString() });
+  const fd = fs.openSync(lockPath, "wx");
+  fs.writeFileSync(fd, content, "utf8");
+  fs.closeSync(fd);
+  instanceLockAcquired = true;
+};
+
+const acquireInstanceLock = () => {
+  try {
+    tryAcquireLockFile();
+    return;
+  } catch (error) {
+    if (error?.code !== "EEXIST") {
+      throw error;
+    }
+  }
+
+  let stalePid = null;
+  try {
+    const existing = fs.readFileSync(lockPath, "utf8");
+    const parsed = JSON.parse(existing);
+    stalePid = Number(parsed?.pid);
+  } catch {
+    stalePid = null;
+  }
+
+  // Container restarts often reuse PID 1; treat same-pid lock as stale.
+  if (stalePid === process.pid) {
+    stalePid = null;
+  }
+
+  if (isProcessRunning(stalePid)) {
+    throw new Error(`scheduler lock exists at ${lockPath}, pid=${stalePid}`);
+  }
+
+  try {
+    fs.unlinkSync(lockPath);
+  } catch (error) {
+    if (error?.code !== "ENOENT") {
+      throw error;
+    }
+  }
+
+  tryAcquireLockFile();
+};
+
+const releaseInstanceLock = () => {
+  if (!instanceLockAcquired) {
+    return;
+  }
+
+  try {
+    fs.unlinkSync(lockPath);
+  } catch (error) {
+    if (error?.code !== "ENOENT") {
+      console.error(`failed to release scheduler lock: ${error.message}`);
+    }
+  } finally {
+    instanceLockAcquired = false;
+  }
+};
+
+const isDirectExecution = () => {
+  const entry = process.argv[1];
+  if (!entry) {
+    return false;
+  }
+  const entryPath = path.resolve(entry);
+  return entryPath === __filename;
 };
 
 const normalizeTasks = (raw, options = {}) => {
@@ -278,7 +367,7 @@ const sendJson = (res, statusCode, data) => {
   res.end(JSON.stringify(data));
 };
 
-const readSchedulerLogLines = (tail = 200) => {
+const readSchedulerLogLines = (tail = 200, sinceMs = 0) => {
   if (!fs.existsSync(logPath)) {
     return [];
   }
@@ -289,31 +378,43 @@ const readSchedulerLogLines = (tail = 200) => {
     .map((line) => line.trim())
     .filter(Boolean);
 
-  const picked = lines.slice(-Math.max(1, tail));
-  return picked.map((line) => {
+  const typeMap = {
+    ERROR: "error",
+    WARN: "warning",
+    TASK: "success",
+    INFO: "info",
+  };
+
+  const normalized = lines.map((line, index) => {
     const match = line.match(/^(\S+)\s+\[(\w+)\]\s+(.*)$/);
     if (!match) {
       return {
         time: new Date().toLocaleTimeString(),
+        timestamp: Date.now(),
+        sequence: index + 1,
         type: "info",
         message: line,
       };
     }
 
     const [, isoTime, level, message] = match;
-    const typeMap = {
-      ERROR: "error",
-      WARN: "warning",
-      TASK: "success",
-      INFO: "info",
-    };
+    const parsedTime = Date.parse(isoTime);
+    const timestamp = Number.isFinite(parsedTime) ? parsedTime : Date.now();
 
     return {
       time: new Date(isoTime).toLocaleTimeString(),
+      timestamp,
+      sequence: index + 1,
       type: typeMap[level] || "info",
       message,
     };
   });
+
+  const filtered = Number(sinceMs) > 0
+    ? normalized.filter((item) => Number(item.timestamp || 0) > Number(sinceMs))
+    : normalized;
+
+  return filtered.slice(-Math.max(1, tail));
 };
 
 const readUiLogs = () => {
@@ -385,7 +486,8 @@ const startApiServer = () => {
     if (req.method === "GET" && url.pathname === "/api/scheduler/logs") {
       try {
         const tail = Number(url.searchParams.get("tail") || 200);
-        const logs = readSchedulerLogLines(tail);
+        const sinceMs = Number(url.searchParams.get("sinceMs") || 0);
+        const logs = readSchedulerLogLines(tail, sinceMs);
         sendJson(res, 200, { ok: true, logs });
       } catch (error) {
         sendJson(res, 500, { ok: false, error: error.message });
@@ -643,11 +745,14 @@ const stop = (signal = "manual") => {
     apiServer = null;
   }
 
+  releaseInstanceLock();
+
   writeLog("INFO", `background scheduler stopped (${signal})`);
   writeLog("INFO", "=== 定时任务调度服务已停止 ===");
 };
 
 const start = () => {
+  acquireInstanceLock();
   writeLog("INFO", `background scheduler started (tasks=${tasksPath}, log=${logPath}, tickMs=${tickMs})`);
   writeLog("INFO", "=== 定时任务调度服务已启动 ===");
   startApiServer();
@@ -680,4 +785,10 @@ process.on("SIGTERM", () => {
   process.exit(0);
 });
 
-start();
+process.on("exit", () => {
+  releaseInstanceLock();
+});
+
+if (isDirectExecution()) {
+  start();
+}
