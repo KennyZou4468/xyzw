@@ -191,22 +191,63 @@ const createBackendRunnerStoreAdapter = ({
 
 const normalizeServerErrorMessage = (error) => {
   const text = String(error?.message || "");
-  const match = text.match(/server error code=(\d+) hint=(.*)$/i);
+  const match = text.match(/server error code=(-?\d+) hint=(.*)$/i);
   if (!match) {
     return text || "未知错误";
   }
-  const code = match[1];
+  const code = Number(match[1]);
   const hint = (match[2] || "").trim();
   const codeHintMap = {
+    "-10006": "服务端拒绝请求（通常表示今日已领完或条件不足）",
     12000116: "今日已领取免费奖励",
     2300070: "未加入俱乐部",
+    2300190: "当前账号不满足俱乐部操作条件",
     200160: "模块未开启",
     12000060: "不在发车时间内",
     200020: "出了点小问题，请尝试重启游戏解决～",
+    1000020: "今天已经领取过奖励了",
+    1400010: "没有购买该月卡,不能领取每日奖励",
+    400190: "没有可领取的签到奖励",
+    3300050: "购买数量超出限制",
+    1300050: "请修改您的采购次数",
+    700020: "已经领取过这个任务",
+    700010: "任务未达成完成条件",
+    200750: "当前战斗条件不满足",
+    2600040: "当前梦境条件不满足",
     3500020: "没有可领取的奖励",
   };
-  const fallbackHint = codeHintMap[Number(code)] || "未知错误";
+  const fallbackHint = codeHintMap[code] || "未知错误";
   return `服务器错误: ${code} - ${hint || fallbackHint}`;
+};
+
+const getConnectionDiagnosis = (error) => {
+  const text = String(error?.message || "").toLowerCase();
+  if (!text) return "";
+
+  if (text.includes("websocket closed") || text.includes("websocket disconnected")) {
+    return "连接被服务器立即关闭（常见原因：Token失效/会话被顶/网络受限）";
+  }
+
+  if (text.includes("timeout") || text.includes("etimedout")) {
+    return "连接或请求超时（请检查服务器网络与目标WS可达性）";
+  }
+
+  if (text.includes("websocket not connected")) {
+    return "连接尚未建立成功（通常是上游连接初始化失败）";
+  }
+
+  if (text.includes("econnreset")) {
+    return "连接被对端重置（可能为链路抖动或服务端主动断开）";
+  }
+
+  return "";
+};
+
+const formatErrorWithDiagnosis = (error) => {
+  const baseMessage = normalizeServerErrorMessage(error);
+  const diagnosis = getConnectionDiagnosis(error);
+  if (!diagnosis) return baseMessage;
+  return `${baseMessage}；诊断: ${diagnosis}`;
 };
 
 const createFrontendLikeBackendTokenStore = ({ tokenCredentials, logger, addLog }) => {
@@ -240,7 +281,7 @@ const createFrontendLikeBackendTokenStore = ({ tokenCredentials, logger, addLog 
         statusMap.set(tokenId, "error");
         addLog({
           time: new Date().toLocaleTimeString(),
-          message: `${credential?.name || tokenId} 连接失败: ${normalizeServerErrorMessage(error)}`,
+          message: `${credential?.name || tokenId} 连接失败: ${formatErrorWithDiagnosis(error)}`,
           type: "error",
         });
       });
@@ -1252,7 +1293,7 @@ const executeBatchPlanWithFrontendModules = async (task, logger = () => {}) => {
           if (retryCount < MAX_RETRIES && !shouldStop.value) {
             addLog({
               time: new Date().toLocaleTimeString(),
-              message: `${token?.name || tokenId} 执行出错: ${error.message}，等待3秒后重试...`,
+              message: `${token?.name || tokenId} 执行出错: ${formatErrorWithDiagnosis(error)}，等待3秒后重试...`,
               type: "warning",
             });
             await sleep(3000);
@@ -1261,7 +1302,7 @@ const executeBatchPlanWithFrontendModules = async (task, logger = () => {}) => {
             tokenStatus.value[tokenId] = "failed";
             addLog({
               time: new Date().toLocaleTimeString(),
-              message: `${token?.name || tokenId} 执行失败: ${error.message}`,
+              message: `${token?.name || tokenId} 执行失败: ${formatErrorWithDiagnosis(error)}`,
               type: "error",
             });
             break;
