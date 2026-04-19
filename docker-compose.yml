@@ -10,22 +10,20 @@ services:
       - "127.0.0.1:8080:80"
 
   scheduler:
-    image: node:20-alpine
+    build:
+      context: .
+      dockerfile: docker/scheduler.dockerfile
+    image: xyzw-scheduler:local
     container_name: xyzw-scheduler-local
     restart: unless-stopped
     environment:
-      - TZ=Asia/Shanghai
-    working_dir: /app
-    command:
-      - node
-      - server/backgroundScheduler.js
-      - --tasks
-      - server/scheduler.tasks.json
-      - --log
-      - server/scheduler.log
-      - --api-port
-      - "8090"
+      TZ: Asia/Shanghai
+      XYZW_EXECUTION_ENGINE: playwright
+      XYZW_PLAYWRIGHT_APP_URL: http://web/admin/batch-daily-tasks
+      XYZW_PLAYWRIGHT_USER_DATA_DIR: /app/runtime/playwright-profile
+      XYZW_PLAYWRIGHT_HEADLESS: "true"
+      XYZW_PLAYWRIGHT_USE_TEMP_PROFILE: "true"
     ports:
       - "127.0.0.1:8090:8090"
     volumes:
-      - ./:/app
+      - ./server-runtime:/app/runtime

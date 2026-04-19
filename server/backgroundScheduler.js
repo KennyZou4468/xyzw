@@ -6,6 +6,10 @@ import { fileURLToPath } from "node:url";
 import { matchesCronExpression, validateCronExpression } from "../src/utils/batch/cronUtils.js";
 import { availableTasks } from "../src/utils/batch/constants.js";
 import { executeBatchPlanInBackend, SUPPORTED_TASKS } from "./backendBatchExecutor.js";
+import {
+  executeBatchPlanWithPlaywright,
+  isPlaywrightExecutionEnabled,
+} from "./playwrightBatchExecutor.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -40,6 +44,9 @@ const tickMs = Number(args["tick-ms"] || 1000);
 const apiPort = args["api-port"] !== undefined ? Number(args["api-port"]) : 0;
 const dailyCatchUpMinutes = Number(args["daily-catchup-minutes"] || 180);
 const lockPath = path.resolve(String(args.lock || defaultLockPath));
+const statePath = path.resolve(
+  String(args.state || path.join(path.dirname(lockPath), "scheduler.state.json")),
+);
 const durationSeconds = args["duration-seconds"]
   ? Number(args["duration-seconds"])
   : null;
@@ -71,8 +78,75 @@ const ensureParentDir = (filePath) => {
   fs.mkdirSync(dir, { recursive: true });
 };
 
+const sanitizeRuntimeStateEntry = (state) => {
+  if (!state || typeof state !== "object") return null;
+  return {
+    lastRunAt: Number(state.lastRunAt || 0) || null,
+    nextRunAt: Number(state.nextRunAt || 0) || null,
+    lastDailyKey: state.lastDailyKey || null,
+    lastCronKey: state.lastCronKey || null,
+    executed: Boolean(state.executed),
+  };
+};
+
+const loadRuntimeStateFromDisk = () => {
+  try {
+    if (!fs.existsSync(statePath)) return;
+    const text = fs.readFileSync(statePath, "utf8");
+    if (!text.trim()) return;
+
+    const parsed = JSON.parse(text);
+    const entries = Object.entries(parsed || {});
+    for (const [taskId, state] of entries) {
+      const sanitized = sanitizeRuntimeStateEntry(state);
+      if (!sanitized) continue;
+      runtimeState.set(taskId, { ...sanitized, running: false });
+    }
+  } catch (error) {
+    writeLog("WARN", `failed to load runtime state: ${error.message}`);
+  }
+};
+
+const persistRuntimeStateToDisk = () => {
+  try {
+    const payload = {};
+    for (const [taskId, state] of runtimeState.entries()) {
+      payload[taskId] = sanitizeRuntimeStateEntry(state);
+    }
+
+    ensureParentDir(statePath);
+    fs.writeFileSync(statePath, JSON.stringify(payload, null, 2), "utf8");
+  } catch (error) {
+    writeLog("WARN", `failed to persist runtime state: ${error.message}`);
+  }
+};
+
+const normalizeLogMessage = (message) => {
+  const raw = String(message ?? "").replace(/\r\n/g, "\n").trim();
+  if (!raw) return "";
+
+  const lines = raw
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  if (lines.length === 0) return "";
+
+  const noisePatterns = [
+    /^at\s+/i,
+    /^call log:?$/i,
+    /^-\s+navigating to\s+/i,
+    /^-\s+waiting for\s+/i,
+  ];
+
+  const filtered = lines.filter((line) => !noisePatterns.some((pattern) => pattern.test(line)));
+  const picked = (filtered[0] || lines[0] || "").trim();
+  return picked || "";
+};
+
 const writeLog = (level, message) => {
-  const line = `${new Date().toISOString()} [${level}] ${message}`;
+  const normalizedMessage = normalizeLogMessage(message);
+  const line = `${new Date().toISOString()} [${level}] ${normalizedMessage}`;
   console.log(line);
   ensureParentDir(logPath);
   fs.appendFileSync(logPath, `${line}\n`, "utf8");
@@ -277,6 +351,60 @@ const readStoredTasks = () => {
   return normalizeTasks(parsed, { includeDisabled: true });
 };
 
+const buildScheduleSignature = (task) => {
+  return [
+    task?.runType || "",
+    String(task?.intervalSeconds ?? ""),
+    String(task?.runTime ?? ""),
+    String(task?.cronExpression ?? ""),
+    String(task?.runAt ?? ""),
+    String(task?.enabled ?? true),
+    String(task?.action ?? ""),
+  ].join("|");
+};
+
+const reconcileRuntimeStateWithTasks = (previousTasks, nextTasks) => {
+  const prevList = Array.isArray(previousTasks) ? previousTasks : [];
+  const nextList = Array.isArray(nextTasks) ? nextTasks : [];
+
+  const prevById = new Map(prevList.map((task) => [task.id, task]));
+  const nextIds = new Set(nextList.map((task) => task.id));
+  let stateChanged = false;
+
+  // Remove runtime state for tasks that no longer exist.
+  for (const taskId of runtimeState.keys()) {
+    if (!nextIds.has(taskId)) {
+      if (runtimeState.delete(taskId)) {
+        stateChanged = true;
+      }
+    }
+  }
+
+  let resetCount = 0;
+  for (const task of nextList) {
+    const prev = prevById.get(task.id);
+    if (!prev) {
+      if (runtimeState.delete(task.id)) {
+        stateChanged = true;
+      }
+      continue;
+    }
+
+    if (buildScheduleSignature(prev) !== buildScheduleSignature(task)) {
+      if (runtimeState.delete(task.id)) {
+        stateChanged = true;
+      }
+      resetCount += 1;
+    }
+  }
+
+  if (stateChanged) {
+    persistRuntimeStateToDisk();
+  }
+
+  return resetCount;
+};
+
 const writeStoredTasks = (tasks) => {
   const normalized = normalizeTasks(tasks, { includeDisabled: true });
   ensureParentDir(tasksPath);
@@ -350,11 +478,18 @@ const getCapabilities = () => {
     supported: supported.has(taskName),
   }));
 
+  const defaultExecutionEngine = String(process.env.XYZW_EXECUTION_ENGINE || "playwright").toLowerCase();
+
   return {
     frontendTaskCount: frontendTaskNames.length,
     backendSupportedCount: SUPPORTED_TASKS.length,
     taskSupport,
     supportedTaskNames: SUPPORTED_TASKS,
+    executionEngines: {
+      default: defaultExecutionEngine,
+      supported: ["auto", "playwright", "legacy"],
+      playwrightAvailable: defaultExecutionEngine === "playwright" || defaultExecutionEngine === "auto",
+    },
   };
 };
 
@@ -372,11 +507,23 @@ const readSchedulerLogLines = (tail = 200, sinceMs = 0) => {
     return [];
   }
 
+  const isNoiseLogLine = (text) => {
+    const line = String(text || "").trim();
+    if (!line) return true;
+    return (
+      /^at\s+/i.test(line) ||
+      /^call log:?$/i.test(line) ||
+      /^-\s+navigating to\s+/i.test(line) ||
+      /^-\s+waiting until\s+/i.test(line) ||
+      /^-\s+waiting for\s+/i.test(line)
+    );
+  };
+
   const text = fs.readFileSync(logPath, "utf8");
   const lines = text
     .split("\n")
     .map((line) => line.trim())
-    .filter(Boolean);
+    .filter((line) => !isNoiseLogLine(line));
 
   const typeMap = {
     ERROR: "error",
@@ -388,6 +535,9 @@ const readSchedulerLogLines = (tail = 200, sinceMs = 0) => {
   const normalized = lines.map((line, index) => {
     const match = line.match(/^(\S+)\s+\[(\w+)\]\s+(.*)$/);
     if (!match) {
+      if (isNoiseLogLine(line)) {
+        return null;
+      }
       return {
         time: new Date().toLocaleTimeString(),
         timestamp: Date.now(),
@@ -408,7 +558,7 @@ const readSchedulerLogLines = (tail = 200, sinceMs = 0) => {
       type: typeMap[level] || "info",
       message,
     };
-  });
+  }).filter(Boolean);
 
   const filtered = Number(sinceMs) > 0
     ? normalized.filter((item) => Number(item.timestamp || 0) > Number(sinceMs))
@@ -529,9 +679,14 @@ const startApiServer = () => {
       });
       req.on("end", () => {
         try {
+          const previousTasks = readStoredTasks();
           const parsed = JSON.parse(body || "[]");
           const tasks = writeStoredTasks(parsed);
+          const resetCount = reconcileRuntimeStateWithTasks(previousTasks, tasks);
           writeLog("INFO", `tasks updated via API, count=${tasks.length}`);
+          if (resetCount > 0) {
+            writeLog("INFO", `runtime state reset for ${resetCount} task(s) after schedule change`);
+          }
           sendJson(res, 200, { ok: true, tasks });
         } catch (error) {
           sendJson(res, 400, { ok: false, error: error.message });
@@ -589,6 +744,7 @@ const markExecuted = (task, nowMs) => {
   }
 
   runtimeState.set(task.id, state);
+  persistRuntimeStateToDisk();
 };
 
 const shouldRunTask = (task, now) => {
@@ -677,7 +833,7 @@ const executeTask = async (task) => {
   }
 
   if (task.action === "batchPlan") {
-    await executeBatchPlanInBackend(task, (message, level = "info") => {
+    const schedulerLogger = (message, level = "info") => {
       const mappedLevel =
         level === "error"
           ? "ERROR"
@@ -687,7 +843,30 @@ const executeTask = async (task) => {
               ? "TASK"
               : "INFO";
       writeLog(mappedLevel, message);
-    });
+    };
+
+    const taskExecutionEngine = String(
+      task?.payload?.executionEngine ||
+        task?.executionEngine ||
+        process.env.XYZW_EXECUTION_ENGINE ||
+        "playwright",
+    ).toLowerCase();
+    schedulerLogger(`batchPlan执行引擎: ${taskExecutionEngine}`, "info");
+
+    if (isPlaywrightExecutionEnabled(task)) {
+      try {
+        schedulerLogger("优先使用 Playwright 浏览器执行引擎", "info");
+        await executeBatchPlanWithPlaywright(task, schedulerLogger);
+        return;
+      } catch (error) {
+        schedulerLogger(
+          `Playwright执行失败，回退到旧后端执行器: ${error.message}`,
+          "warn",
+        );
+      }
+    }
+
+    await executeBatchPlanInBackend(task, schedulerLogger);
     return;
   }
 };
@@ -753,6 +932,7 @@ const stop = (signal = "manual") => {
 
 const start = () => {
   acquireInstanceLock();
+  loadRuntimeStateFromDisk();
   writeLog("INFO", `background scheduler started (tasks=${tasksPath}, log=${logPath}, tickMs=${tickMs})`);
   writeLog("INFO", "=== 定时任务调度服务已启动 ===");
   startApiServer();

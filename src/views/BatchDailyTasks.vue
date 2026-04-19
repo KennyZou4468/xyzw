@@ -1643,6 +1643,10 @@
             <span style="color: #6b7280">选中任务：</span>
             <span>{{ getTaskSelectedCount(task) }} 个</span>
           </div>
+          <div style="margin-bottom: 8px">
+            <span style="color: #6b7280">执行引擎：</span>
+            <span>{{ getTaskExecutionEngineLabel(task) }}</span>
+          </div>
           <div style="display: flex; gap: 8px">
             <n-button size="tiny" @click="editTask(task)"> 编辑 </n-button>
             <n-button size="tiny" type="error" @click="deleteTask(task.id)">
@@ -1693,6 +1697,14 @@
               <n-radio value="daily">每天固定时间</n-radio>
               <n-radio value="cron">Cron表达式</n-radio>
             </n-radio-group>
+          </div>
+          <div class="setting-item">
+            <label class="setting-label">执行引擎</label>
+            <n-select
+              v-model:value="taskForm.executionEngine"
+              :options="executionEngineOptions"
+              placeholder="请选择执行引擎"
+            />
           </div>
           <div class="setting-item" v-if="taskForm.runType === 'daily'">
             <label class="setting-label">运行时间</label>
@@ -3494,9 +3506,16 @@ const taskForm = reactive({
   cronExpression: "", // Cron expression for complex scheduling
   selectedTokens: [], // Selected token IDs
   selectedTasks: [], // Selected task function names
+  executionEngine: "auto", // auto | playwright | legacy
   allowSameRoleParallel: false, // Backend: allow same roleId tokens to run in parallel
   enabled: true, // Whether the task is enabled
 });
+
+const executionEngineOptions = [
+  { label: "自动", value: "auto" },
+  { label: "Playwright 浏览器", value: "playwright" },
+  { label: "Legacy 后端兜底", value: "legacy" },
+];
 
 // 任务分组定义
 const taskGroupDefinitions = [
@@ -3604,6 +3623,7 @@ const isRefreshingLogs = ref(false);
 const logSyncState = ref("idle");
 const logSyncStatusText = ref("尚未同步");
 const useBrowserScheduler = ref(true);
+const forceBrowserScheduler = ref(false);
 const schedulerSnapshotSyncIntervalMs = 60 * 1000;
 const schedulerSnapshotSyncDebounceMs = 3000;
 let schedulerSnapshotHeartbeatTimer = null;
@@ -3636,6 +3656,25 @@ const checkSchedulerApiHealth = async () => {
   }
 };
 
+const shouldForceBrowserScheduler = () => {
+  try {
+    if (typeof window === "undefined") return false;
+    if (window.__XYZW_FORCE_BROWSER_SCHEDULER__ === true) return true;
+    const query = new URLSearchParams(window.location.search);
+    return (
+      query.get("schedulerEngine") === "browser" ||
+      localStorage.getItem("xyzw_force_browser_scheduler") === "true"
+    );
+  } catch {
+    return false;
+  }
+};
+
+const isPlaywrightAutomationContext = () => {
+  if (typeof window === "undefined") return false;
+  return window.__XYZW_FORCE_BROWSER_SCHEDULER__ === true;
+};
+
 const ensureArray = (value) => {
   if (!Array.isArray(value)) return [];
   return value.filter((item) => item !== undefined && item !== null);
@@ -3654,6 +3693,9 @@ const normalizeScheduledTask = (task) => {
   normalized.allowSameRoleParallel = Boolean(
     normalized.allowSameRoleParallel ?? normalized.payload?.allowSameRoleParallel ?? false,
   );
+  normalized.executionEngine = String(
+    normalized.executionEngine ?? normalized.payload?.executionEngine ?? "auto",
+  ).toLowerCase();
 
   if (normalized.runType === "daily") {
     const validRunTime =
@@ -3697,6 +3739,14 @@ const getTaskRunValue = (task) => {
 
 const getTaskTokenCount = (task) => ensureArray(task?.selectedTokens).length;
 const getTaskSelectedCount = (task) => ensureArray(task?.selectedTasks).length;
+const getTaskExecutionEngineLabel = (task) => {
+  const value = String(
+    task?.executionEngine ?? task?.payload?.executionEngine ?? "auto",
+  ).toLowerCase();
+  if (value === "playwright") return "Playwright 浏览器";
+  if (value === "legacy") return "Legacy 后端";
+  return "自动";
+};
 
 const buildTokenCredential = (tokenId) => {
   const token = tokenStore.gameTokens.find((item) => item.id === tokenId);
@@ -3736,6 +3786,7 @@ const toSchedulerApiTask = (task) => {
   const selectedTokens = ensureArray(task?.selectedTokens);
   const selectedTasks = ensureArray(task?.selectedTasks);
   const allowSameRoleParallel = Boolean(task?.allowSameRoleParallel);
+  const executionEngine = String(task?.executionEngine || "auto").toLowerCase();
   const tokenCredentials = selectedTokens
     .map((tokenId) => buildTokenCredential(tokenId))
     .filter(Boolean);
@@ -3745,6 +3796,7 @@ const toSchedulerApiTask = (task) => {
       ...task,
       selectedTokens,
       selectedTasks,
+      executionEngine,
       allowSameRoleParallel,
     };
   }
@@ -3758,11 +3810,13 @@ const toSchedulerApiTask = (task) => {
     ...task,
     selectedTokens,
     selectedTasks,
+    executionEngine,
     allowSameRoleParallel,
     action: "batchPlan",
     payload: {
       ...(task?.payload || {}),
       accountName: firstTokenName,
+      executionEngine,
       allowSameRoleParallel,
       selectedTokens,
       tokenCredentials,
@@ -4032,6 +4086,7 @@ const openTaskModal = () => {
     cronExpression: "",
     selectedTokens: [],
     selectedTasks: [],
+    executionEngine: "auto",
     allowSameRoleParallel: false,
     enabled: true,
   });
@@ -4150,6 +4205,7 @@ const saveTask = () => {
     cronExpression: taskForm.runType === "cron" ? taskForm.cronExpression : "",
     selectedTokens: [...taskForm.selectedTokens],
     selectedTasks: [...taskForm.selectedTasks],
+    executionEngine: taskForm.executionEngine,
     allowSameRoleParallel: Boolean(taskForm.allowSameRoleParallel),
     enabled: taskForm.enabled,
   };
@@ -4763,10 +4819,13 @@ const handleTokenRefreshWaiting = (data) => {
 
 // Debug: Log initial state when component mounts
 onMounted(async () => {
+  forceBrowserScheduler.value = shouldForceBrowserScheduler();
+  const automationContext = isPlaywrightAutomationContext();
   const backendSchedulerHealthy = await checkSchedulerApiHealth();
-  useBrowserScheduler.value = !backendSchedulerHealthy;
+  useBrowserScheduler.value =
+    forceBrowserScheduler.value || !backendSchedulerHealthy;
 
-  if (backendSchedulerHealthy) {
+  if (backendSchedulerHealthy && !forceBrowserScheduler.value) {
     logs.value = [];
     backendLogCursorMs.value = 0;
     await loadSchedulerLogs({ silent: true, resetCursor: true, tail: 1000 });
@@ -4778,18 +4837,20 @@ onMounted(async () => {
     await loadSchedulerLogs();
   }
 
-  if (backendSchedulerHealthy) {
+  if (backendSchedulerHealthy && !forceBrowserScheduler.value) {
     startBackendLogAutoSync();
   }
 
-  lastSchedulerSnapshotSignature = buildSchedulerSnapshotSignature(scheduledTasks.value);
-  startSilentSchedulerSnapshotHeartbeat();
-  queueSilentSchedulerSnapshotSync("mount");
+  if (!automationContext) {
+    lastSchedulerSnapshotSignature = buildSchedulerSnapshotSignature(scheduledTasks.value);
+    startSilentSchedulerSnapshotHeartbeat();
+    queueSilentSchedulerSnapshotSync("mount");
+  }
 
   if (useBrowserScheduler.value) {
     if (acquireSchedulerLock()) {
       // Start the task scheduler after all functions are initialized
-      scheduleTaskExecution();
+      scheduleTaskExecution({ suppressStartLog: automationContext });
       // Start countdown timer
       startCountdown();
     }
@@ -4805,6 +4866,17 @@ onMounted(async () => {
   loadTaskTemplates();
   // 监听Token刷新等待事件
   $emit.on("token:refresh:waiting", handleTokenRefreshWaiting);
+
+  if (typeof window !== "undefined") {
+    window.__XYZW_EXECUTE_SCHEDULED_TASK__ = async (rawTask) => {
+      const normalizedTask = normalizeScheduledTask(rawTask || {});
+      await executeScheduledTask(normalizedTask);
+      return {
+        ok: true,
+        taskId: normalizedTask?.id || null,
+      };
+    };
+  }
 });
 
 // Cleanup countdown interval on unmount
@@ -4838,16 +4910,24 @@ onBeforeUnmount(() => {
   stopSilentSchedulerSnapshotHeartbeat();
 
   releaseSchedulerLock();
+
+  if (typeof window !== "undefined") {
+    delete window.__XYZW_EXECUTE_SCHEDULED_TASK__;
+  }
 });
 
 // Task scheduler - ensure it runs properly
-const scheduleTaskExecution = () => {
+const scheduleTaskExecution = (options = {}) => {
+  const suppressStartLog = options.suppressStartLog === true;
+
   // Log the start of the scheduler
-  addLog({
-    time: new Date().toLocaleTimeString(),
-    message: "=== 定时任务调度服务已启动 ===",
-    type: "info",
-  });
+  if (!suppressStartLog) {
+    addLog({
+      time: new Date().toLocaleTimeString(),
+      message: "=== 定时任务调度服务已启动 ===",
+      type: "info",
+    });
+  }
 
   // Start the scheduler
   startScheduler();
@@ -5759,6 +5839,7 @@ const saveTaskTemplate = () => {
 const currentRunningTokenId = ref(null);
 const currentProgress = ref(0);
 const logs = ref([]);
+const unrecoverableTokenErrors = ref({});
 const batchLogStorageKey = "batchDailyTaskLogs";
 const logContainer = ref(null);
 const autoScrollLog = ref(true);
@@ -5782,6 +5863,42 @@ const currentRunningTokenName = computed(() => {
   const t = tokens.value.find((x) => x.id === currentRunningTokenId.value);
   return t ? t.name : "";
 });
+
+const clearUnrecoverableTokenErrors = () => {
+  unrecoverableTokenErrors.value = {};
+};
+
+const markTokenAsUnrecoverable = (tokenId, reason) => {
+  if (!tokenId) return;
+  const key = String(tokenId);
+  if (unrecoverableTokenErrors.value[key]) return;
+  unrecoverableTokenErrors.value = {
+    ...unrecoverableTokenErrors.value,
+    [key]: reason || "Token不可恢复",
+  };
+};
+
+const isTokenUnrecoverable = (tokenId) => {
+  if (!tokenId) return false;
+  return Boolean(unrecoverableTokenErrors.value[String(tokenId)]);
+};
+
+const extractTokenIdFromUnrecoverableLog = (text) => {
+  const messageText = String(text || "");
+  if (!messageText) return null;
+
+  const fatalHints = [
+    "Token 已过期且无法自动刷新",
+    "Token刷新失败: 未找到BIN数据",
+    "Token刷新失败，请手动重新导入",
+  ];
+  if (!fatalHints.some((hint) => messageText.includes(hint))) {
+    return null;
+  }
+
+  const idMatch = messageText.match(/\[([a-f0-9]{24,64})\]/i);
+  return idMatch?.[1] || null;
+};
 
 // Selection logic
 const isAllSelected = computed(
@@ -6242,6 +6359,24 @@ const addLog = (log) => {
     sequence: localLogSequence.value,
   };
 
+  const fatalTokenId = extractTokenIdFromUnrecoverableLog(enrichedLog?.message);
+  if (fatalTokenId) {
+    markTokenAsUnrecoverable(fatalTokenId, enrichedLog?.message || "Token不可恢复");
+  } else if (enrichedLog?.tokenId) {
+    const messageText = String(enrichedLog?.message || "");
+    if (/Token不可恢复|Token 已过期且无法自动刷新|未找到BIN数据|请手动重新导入/i.test(messageText)) {
+      markTokenAsUnrecoverable(enrichedLog.tokenId, messageText || "Token不可恢复");
+    }
+  }
+
+  try {
+    if (typeof window !== "undefined" && typeof window.__XYZW_AUTOMATION_LOG__ === "function") {
+      window.__XYZW_AUTOMATION_LOG__(enrichedLog);
+    }
+  } catch {
+    // ignore automation log bridge failures
+  }
+
   // 添加日志数据到数组
   logs.value.push(enrichedLog);
 
@@ -6342,6 +6477,10 @@ const releaseConnectionSlot = () => {
 };
 
 const ensureConnection = async (tokenId, maxRetries = 2) => {
+  if (isTokenUnrecoverable(tokenId)) {
+    throw new Error(`Token不可恢复（已过期且无法自动刷新） [${tokenId}]`);
+  }
+
   const latestToken = tokens.value.find((t) => t.id === tokenId);
   if (!latestToken) {
     throw new Error(`Token not found: ${tokenId}`);
@@ -6543,6 +6682,8 @@ const { batchLegacyClaim, batchLegacyGiftSendEnhanced } = tasksLegacy;
 const startBatch = async () => {
   if (selectedTokens.value.length === 0) return;
 
+  clearUnrecoverableTokenErrors();
+
   isRunning.value = true;
   shouldStop.value = false;
   // 不再重置logs数组，保留之前的日志
@@ -6567,18 +6708,29 @@ const startBatch = async () => {
       if (shouldStop.value) break;
 
       const token = tokens.value.find((t) => t.id === tokenId);
+      const tokenName = token?.name || tokenId;
+
+      if (isTokenUnrecoverable(tokenId)) {
+        tokenStatus.value[tokenId] = "failed";
+        addLog({
+          time: new Date().toLocaleTimeString(),
+          message: `${tokenName} 已判定为不可恢复Token，本轮跳过后续重试`,
+          type: "warning",
+        });
+        break;
+      }
 
       try {
         if (retryCount === 0) {
           addLog({
             time: new Date().toLocaleTimeString(),
-            message: `=== 开始执行: ${token.name} ===`,
+            message: `=== 开始执行: ${tokenName} ===`,
             type: "info",
           });
         } else {
           addLog({
             time: new Date().toLocaleTimeString(),
-            message: `=== 尝试重试: ${token.name} (第${retryCount}次) ===`,
+            message: `=== 尝试重试: ${tokenName} (第${retryCount}次) ===`,
             type: "info",
           });
         }
@@ -6603,15 +6755,32 @@ const startBatch = async () => {
         tokenStatus.value[tokenId] = "completed";
         addLog({
           time: new Date().toLocaleTimeString(),
-          message: `=== ${token.name} 执行完成 ===`,
+          message: `=== ${tokenName} 执行完成 ===`,
           type: "success",
         });
       } catch (error) {
         console.error(error);
+        const unrecoverableNow =
+          isTokenUnrecoverable(tokenId) ||
+          /Token不可恢复|Token 已过期且无法自动刷新|未找到BIN数据|请手动重新导入/i.test(
+            String(error?.message || ""),
+          );
+
+        if (unrecoverableNow) {
+          markTokenAsUnrecoverable(tokenId, String(error?.message || "Token不可恢复"));
+          tokenStatus.value[tokenId] = "failed";
+          addLog({
+            time: new Date().toLocaleTimeString(),
+            message: `${tokenName} 执行失败: ${error.message}（不可恢复，停止重试）`,
+            type: "error",
+          });
+          break;
+        }
+
         if (retryCount < MAX_RETRIES && !shouldStop.value) {
           addLog({
             time: new Date().toLocaleTimeString(),
-            message: `${token.name} 执行出错: ${error.message}，等待3秒后重试...`,
+            message: `${tokenName} 执行出错: ${error.message}，等待3秒后重试...`,
             type: "warning",
           });
           // Wait for potential token refresh in store
@@ -6621,7 +6790,7 @@ const startBatch = async () => {
           tokenStatus.value[tokenId] = "failed";
           addLog({
             time: new Date().toLocaleTimeString(),
-            message: `${token.name} 执行失败: ${error.message}`,
+            message: `${tokenName} 执行失败: ${error.message}`,
             type: "error",
           });
         }
@@ -6631,7 +6800,7 @@ const startBatch = async () => {
         releaseConnectionSlot();
         addLog({
           time: new Date().toLocaleTimeString(),
-          message: `${token.name} 连接已关闭  (队列: ${connectionQueue.active}/${batchSettings.maxActive})`,
+          message: `${tokenName} 连接已关闭  (队列: ${connectionQueue.active}/${batchSettings.maxActive})`,
           type: "info",
         });
       }

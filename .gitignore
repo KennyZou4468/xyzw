@@ -82,3 +82,5 @@ server/config.json
 server/scheduler.tasks.json
 server/scheduler.tasks.json.bak
 server/scheduler.ui.logs.json
+server/.playwright-profile/
+server-runtime/

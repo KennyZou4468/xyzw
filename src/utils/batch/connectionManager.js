@@ -5,6 +5,28 @@
 // 全局连接队列控制 - 限制并发连接数
 export const connectionQueue = { active: 0 };
 
+const normalizeErrorText = (errorLike) => {
+  if (!errorLike) return "";
+  if (typeof errorLike === "string") return errorLike;
+  if (typeof errorLike?.message === "string") return errorLike.message;
+  return String(errorLike);
+};
+
+const isFatalConnectionFailure = (errorLike) => {
+  const text = normalizeErrorText(errorLike).toLowerCase();
+  if (!text) return false;
+
+  return (
+    text.includes("websocket closed") ||
+    text.includes("unexpected response status=401") ||
+    text.includes("unexpected response status=403") ||
+    text.includes("forbidden") ||
+    text.includes("unauthorized") ||
+    text.includes("token已过期") ||
+    text.includes("token 已过期")
+  );
+};
+
 /**
  * 创建连接管理器
  * @param {object} options - 配置选项
@@ -43,6 +65,7 @@ export function createConnectionManager({ tokenStore, batchSettings, addLog }) {
     while (Date.now() - start < timeout) {
       const status = tokenStore.getWebSocketStatus(tokenId);
       if (status === "connected") return true;
+      if (status === "error") return false;
       await new Promise((r) => setTimeout(r, 500));
     }
     return false;
@@ -80,6 +103,14 @@ export function createConnectionManager({ tokenStore, batchSettings, addLog }) {
       );
       connected = await waitForConnection(tokenId);
 
+      const lastConnectionError = tokenStore.getLastConnectionError?.(tokenId);
+      if (!connected && isFatalConnectionFailure(lastConnectionError)) {
+        releaseConnectionSlot();
+        throw new Error(
+          `连接失败（不可恢复）: ${normalizeErrorText(lastConnectionError) || "websocket closed"}`
+        );
+      }
+
       if (!connected && maxRetries > 0) {
         addLog({
           time: new Date().toLocaleTimeString(),
@@ -104,6 +135,14 @@ export function createConnectionManager({ tokenStore, batchSettings, addLog }) {
         );
 
         connected = await waitForConnection(tokenId);
+
+        const retryConnectionError = tokenStore.getLastConnectionError?.(tokenId);
+        if (!connected && isFatalConnectionFailure(retryConnectionError)) {
+          releaseConnectionSlot();
+          throw new Error(
+            `连接失败（不可恢复）: ${normalizeErrorText(retryConnectionError) || "websocket closed"}`
+          );
+        }
       }
 
       if (!connected) {

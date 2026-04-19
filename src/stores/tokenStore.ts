@@ -231,11 +231,25 @@ export const useTokenStore = defineStore("tokens", () => {
   const updateToken = (tokenId: string, updates: Partial<TokenData>) => {
     const index = gameTokens.value.findIndex((token) => token.id === tokenId);
     if (index !== -1) {
+      const tokenValueChanged =
+        typeof updates.token === "string" &&
+        updates.token !== gameTokens.value[index].token;
+      const sourceChanged =
+        typeof updates.sourceUrl === "string" &&
+        updates.sourceUrl !== gameTokens.value[index].sourceUrl;
+      const importMethodChanged =
+        typeof updates.importMethod === "string" &&
+        updates.importMethod !== gameTokens.value[index].importMethod;
+
       gameTokens.value[index] = {
         ...gameTokens.value[index],
         ...updates,
         updatedAt: new Date().toISOString(),
       };
+
+      if (tokenValueChanged || sourceChanged || importMethodChanged) {
+        clearTokenRefreshUnrecoverable(tokenId);
+      }
       return true;
     }
     return false;
@@ -322,12 +336,40 @@ export const useTokenStore = defineStore("tokens", () => {
 
   // Token刷新尝试记录
   const tokenRefreshAttempts = ref<Record<string, number>>({});
+  const unrecoverableRefreshTokens = ref<Record<string, string>>({});
+
+  const markTokenRefreshUnrecoverable = (tokenId: string, reason: string) => {
+    if (!tokenId) return;
+    if (unrecoverableRefreshTokens.value[tokenId]) return;
+    unrecoverableRefreshTokens.value = {
+      ...unrecoverableRefreshTokens.value,
+      [tokenId]: reason || "Token不可自动刷新",
+    };
+  };
+
+  const clearTokenRefreshUnrecoverable = (tokenId: string) => {
+    if (!tokenId) return;
+    if (!unrecoverableRefreshTokens.value[tokenId]) return;
+    const next = { ...unrecoverableRefreshTokens.value };
+    delete next[tokenId];
+    unrecoverableRefreshTokens.value = next;
+  };
+
+  const isTokenRefreshUnrecoverable = (tokenId: string) => {
+    if (!tokenId) return false;
+    return Boolean(unrecoverableRefreshTokens.value[tokenId]);
+  };
 
   // 尝试自动刷新Token
   const attemptTokenRefresh = async (
     tokenId: string,
     forceReconnect = false,
   ) => {
+    if (isTokenRefreshUnrecoverable(tokenId)) {
+      wsLogger.warn(`Token已标记为不可自动刷新，跳过刷新 [${tokenId}]`);
+      return false;
+    }
+
     // 检查冷却时间 (10秒)
     const lastAttempt = tokenRefreshAttempts.value[tokenId] || 0;
     const now = Date.now();
@@ -342,10 +384,11 @@ export const useTokenStore = defineStore("tokens", () => {
 
     wsLogger.info(`尝试自动刷新Token [${tokenId}]`);
     let refreshSuccess = false;
+    let refreshedByUrl = false;
 
     try {
-      if (gameToken.importMethod === "url" && gameToken.sourceUrl) {
-        // URL形式token刷新
+      if (gameToken.sourceUrl) {
+        // URL优先刷新（与导入方式解耦），以便 BIN 账号也可配置 URL 进行后端/前端统一刷新。
         const token = await scheduleAuthUserRequest(async () => {
           const response = await fetch(gameToken.sourceUrl!);
           if (response.ok) {
@@ -357,14 +400,23 @@ export const useTokenStore = defineStore("tokens", () => {
           return null;
         });
         if (token) {
-          updateToken(tokenId, { ...gameToken, token });
+          updateToken(tokenId, {
+            ...gameToken,
+            token,
+            sourceUrl: gameToken.sourceUrl,
+            importMethod: "url",
+          });
+          clearTokenRefreshUnrecoverable(tokenId);
           wsLogger.info(`从URL获取token成功: ${gameToken.name}`);
           refreshSuccess = true;
+          refreshedByUrl = true;
         }
-      } else if (
+      }
+
+      if (!refreshSuccess && (
         gameToken.importMethod === "bin" ||
         gameToken.importMethod === "wxQrcode"
-      ) {
+      )) {
         // Bin形式token刷新
         let userToken: ArrayBuffer | null = await getArrayBuffer(tokenId);
         let usedOldKey = false;
@@ -380,6 +432,7 @@ export const useTokenStore = defineStore("tokens", () => {
         if (userToken) {
           const token = await transformToken(userToken);
           updateToken(tokenId, { ...gameToken, token });
+          clearTokenRefreshUnrecoverable(tokenId);
           if (usedOldKey) {
             const saved = await storeArrayBuffer(tokenId, userToken);
             if (saved) {
@@ -388,7 +441,9 @@ export const useTokenStore = defineStore("tokens", () => {
           }
           refreshSuccess = true;
         } else {
-          wsLogger.error(`Token刷新失败: 未找到BIN数据 [${tokenId}]`);
+          if (!refreshedByUrl) {
+            wsLogger.error(`Token刷新失败: 未找到BIN数据 [${tokenId}]`);
+          }
         }
       }
     } catch (error) {
@@ -414,6 +469,7 @@ export const useTokenStore = defineStore("tokens", () => {
       }
       return true;
     } else {
+      markTokenRefreshUnrecoverable(tokenId, "Token 已过期且无法自动刷新，请重新导入");
       wsLogger.error(`Token刷新失败，请手动重新导入 [${tokenId}]`);
       return false;
     }
@@ -451,6 +507,7 @@ export const useTokenStore = defineStore("tokens", () => {
               wsLogger.error(
                 `Token 已过期且无法自动刷新，请重新导入 [${tokenId}]`,
               );
+              await closeWebSocketConnectionAsync(tokenId);
             }
           }
         }
@@ -694,6 +751,11 @@ export const useTokenStore = defineStore("tokens", () => {
     base64Token: string,
     customWsUrl = null,
   ) => {
+    if (isTokenRefreshUnrecoverable(tokenId)) {
+      wsLogger.warn(`跳过创建连接，Token不可自动刷新 [${tokenId}]`);
+      return null;
+    }
+
     wsLogger.info(`开始创建连接: ${tokenId}`);
 
     // 1. 获取连接锁，防止竞态条件

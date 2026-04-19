@@ -5,3 +5,5 @@ npm-debug.log
 pnpm-debug.log
 yarn-error.log
 .DS_Store
+server-runtime
+server/.playwright-profile

@@ -117,6 +117,11 @@ src/
 
 ## 🚀 快速开始
 
+### 调度器文档入口
+
+- Docker 部署与运行时目录：`docs/docker-deployment.md`
+- Playwright 调度执行引擎：`docs/playwright-scheduler.md`
+
 ### 环境要求
 
 ```bash

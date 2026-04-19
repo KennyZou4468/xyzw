@@ -197,7 +197,7 @@ const sanitizeTokenCredentialsBeforeRun = (tokenCredentials, addLog) => {
 };
 
 const refreshCredentialTokenFromSource = async (credential, addLog) => {
-  if (!credential || credential.importMethod !== "url" || !credential.sourceUrl) {
+  if (!credential || !credential.sourceUrl) {
     return credential;
   }
 
@@ -284,7 +284,16 @@ const regenerateTokenSessionFields = (credential) => {
   }
 };
 
-const regenerateSessionFieldsForCredentials = (tokenCredentials, addLog) => {
+const regenerateSessionFieldsForCredentials = (
+  tokenCredentials,
+  addLog,
+  options = {},
+) => {
+  const shouldRegenerate = options.force === true;
+  if (!shouldRegenerate) {
+    return tokenCredentials;
+  }
+
   let changedCount = 0;
   const next = ensureArray(tokenCredentials).map((credential) => {
     const regenerated = regenerateTokenSessionFields(credential);
@@ -430,6 +439,21 @@ const getConnectionDiagnosis = (error) => {
   return "";
 };
 
+const isHandshakeRejectedError = (error) => {
+  const text = String(error?.message || "").toLowerCase();
+  const code = Number(error?.code || 0);
+  return (
+    code === 1006 ||
+    code === 401 ||
+    code === 403 ||
+    text.includes("websocket closed") ||
+    text.includes("unexpected response status=401") ||
+    text.includes("unexpected response status=403") ||
+    text.includes("forbidden") ||
+    text.includes("unauthorized")
+  );
+};
+
 const formatErrorWithDiagnosis = (error) => {
   const baseMessage = normalizeServerErrorMessage(error);
   const diagnosis = getConnectionDiagnosis(error);
@@ -441,11 +465,28 @@ const createFrontendLikeBackendTokenStore = ({ tokenCredentials, logger, addLog 
   const credentialMap = new Map(tokenCredentials.map((item) => [item.id, item]));
   const clientMap = new Map();
   const statusMap = new Map();
+  const connectionPromiseMap = new Map();
+  const lastConnectErrorMap = new Map();
 
-  const createWebSocketConnection = (tokenId, tokenRaw, wsUrl) => {
-    const existingStatus = statusMap.get(tokenId);
-    if (existingStatus === "connecting" || existingStatus === "connected") {
-      return;
+  const waitForStatus = async (tokenId, expectedStatus = "connected", timeoutMs = DEFAULT_TIMEOUT_MS) => {
+    const startedAt = Date.now();
+    while (Date.now() - startedAt < timeoutMs) {
+      const currentStatus = statusMap.get(tokenId);
+      if (currentStatus === expectedStatus) {
+        return true;
+      }
+      if (currentStatus === "error" || currentStatus === "disconnected") {
+        return false;
+      }
+      await sleep(100);
+    }
+    return false;
+  };
+
+  const connectClient = async (tokenId, tokenRaw, wsUrl) => {
+    const existingPromise = connectionPromiseMap.get(tokenId);
+    if (existingPromise) {
+      return existingPromise;
     }
 
     const credential = credentialMap.get(tokenId) || {
@@ -454,27 +495,87 @@ const createFrontendLikeBackendTokenStore = ({ tokenCredentials, logger, addLog 
       token: tokenRaw,
       wsUrl,
     };
-    const client = new BackendWsClient(buildWsUrl(credential), logger);
-    clientMap.set(tokenId, client);
-    statusMap.set(tokenId, "connecting");
 
-    client
-      .connect()
-      .then(async () => {
+    const connectPromise = (async () => {
+      const existingClient = clientMap.get(tokenId);
+      if (existingClient) {
+        try {
+          await existingClient.disconnect();
+        } catch {
+          // ignore cleanup errors before reconnect
+        }
+      }
+
+      const client = new BackendWsClient(buildWsUrl(credential), logger);
+      clientMap.set(tokenId, client);
+      statusMap.set(tokenId, "connecting");
+
+      try {
+        await client.connect();
         await initializeAccountSession(client);
         statusMap.set(tokenId, "connected");
-      })
-      .catch((error) => {
+        lastConnectErrorMap.delete(tokenId);
+        return client;
+      } catch (error) {
         statusMap.set(tokenId, "error");
+        clientMap.delete(tokenId);
+        lastConnectErrorMap.set(tokenId, error);
         addLog({
           time: new Date().toLocaleTimeString(),
           message: `${credential?.name || tokenId} 连接失败: ${formatErrorWithDiagnosis(error)}`,
           type: "error",
         });
-      });
+        throw error;
+      } finally {
+        connectionPromiseMap.delete(tokenId);
+      }
+    })();
+
+    connectionPromiseMap.set(tokenId, connectPromise);
+    return connectPromise;
+  };
+
+  const ensureConnectedForSend = async (tokenId, timeoutMs = DEFAULT_TIMEOUT_MS) => {
+    const status = statusMap.get(tokenId);
+    const client = clientMap.get(tokenId);
+
+    if (status === "connected" && client) {
+      return client;
+    }
+
+    if (status === "connecting") {
+      const connected = await waitForStatus(tokenId, "connected", timeoutMs);
+      if (connected) {
+        const activeClient = clientMap.get(tokenId);
+        if (activeClient) return activeClient;
+      }
+    }
+
+    const credential = credentialMap.get(tokenId);
+    if (!credential) {
+      throw new Error(`Token not found: ${tokenId}`);
+    }
+
+    return connectClient(
+      tokenId,
+      credential.token,
+      credential.wsUrl,
+    );
+  };
+
+  const createWebSocketConnection = (tokenId, tokenRaw, wsUrl) => {
+    const existingStatus = statusMap.get(tokenId);
+    if (existingStatus === "connecting" || existingStatus === "connected") {
+      return;
+    }
+
+    connectClient(tokenId, tokenRaw, wsUrl).catch(() => {
+      // Connection errors are already logged inside connectClient.
+    });
   };
 
   const closeWebSocketConnection = (tokenId) => {
+    connectionPromiseMap.delete(tokenId);
     const client = clientMap.get(tokenId);
     statusMap.set(tokenId, "disconnected");
     if (client) {
@@ -486,13 +587,28 @@ const createFrontendLikeBackendTokenStore = ({ tokenCredentials, logger, addLog 
   };
 
   const sendMessageWithPromise = async (tokenId, cmd, params = {}, timeout = DEFAULT_TIMEOUT_MS) => {
-    const client = clientMap.get(tokenId);
-    const status = statusMap.get(tokenId);
-    if (!client || status !== "connected") {
-      throw new Error("WebSocket未连接");
-    }
+    const performSend = async (allowReconnectRetry) => {
+      const client = await ensureConnectedForSend(tokenId, Math.max(timeout, 8000));
+      if (!client || statusMap.get(tokenId) !== "connected") {
+        throw new Error("WebSocket未连接");
+      }
+
+      try {
+        return await client.sendRaw(cmd, params, timeout);
+      } catch (error) {
+        if (allowReconnectRetry && isTransportDisconnectedError(error)) {
+          closeWebSocketConnection(tokenId);
+          await sleep(200);
+          await ensureConnectedForSend(tokenId, Math.max(timeout, 8000));
+          return performSend(false);
+        }
+
+        throw error;
+      }
+    };
+
     try {
-      return await client.sendRaw(cmd, params, timeout);
+      return await performSend(true);
     } catch (error) {
       throw new Error(normalizeServerErrorMessage(error));
     }
@@ -512,6 +628,7 @@ const createFrontendLikeBackendTokenStore = ({ tokenCredentials, logger, addLog 
       battleVersion: 0,
     },
     getWebSocketStatus: (tokenId) => statusMap.get(tokenId) || "disconnected",
+    getLastConnectionError: (tokenId) => lastConnectErrorMap.get(tokenId) || null,
     createWebSocketConnection,
     closeWebSocketConnection,
     async sendMessageWithPromise(tokenId, cmd, params = {}, timeout = DEFAULT_TIMEOUT_MS) {
@@ -809,6 +926,10 @@ const isRetryableWsCloseCode = (code) => {
   return code === 1006 || code === 4001;
 };
 
+const BACKEND_WS_ORIGIN = "https://xxz-xyzw.hortorgames.com";
+const BACKEND_WS_USER_AGENT =
+  "Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1";
+
 const shouldRetryConnectError = (error) => {
   const code = Number(error?.code || 0);
   if (isRetryableWsCloseCode(code)) return true;
@@ -842,7 +963,18 @@ class BackendWsClient {
     for (let attempt = 0; attempt <= maxRetries; attempt += 1) {
       try {
         await new Promise((resolve, reject) => {
-      const ws = new WebSocket(this.url);
+      const ws = new WebSocket(this.url, {
+        origin: BACKEND_WS_ORIGIN,
+        handshakeTimeout: timeoutMs,
+        headers: {
+          Origin: BACKEND_WS_ORIGIN,
+          Referer: `${BACKEND_WS_ORIGIN}/`,
+          "User-Agent": BACKEND_WS_USER_AGENT,
+          "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
+          "Cache-Control": "no-cache",
+          Pragma: "no-cache",
+        },
+      });
       const timer = setTimeout(() => {
         try {
           ws.close();
@@ -899,6 +1031,20 @@ class BackendWsClient {
       ws.onmessage = (evt) => {
         this.handleMessage(evt.data);
       };
+
+      ws.on("unexpected-response", (_, response) => {
+        const statusCode = Number(response?.statusCode || 0);
+        const location = response?.headers?.location || "";
+        const err = new Error(
+          `websocket unexpected response status=${statusCode || "unknown"}${location ? ` location=${location}` : ""}`,
+        );
+        err.code = statusCode;
+        if (!opened && !settled) {
+          settled = true;
+          clearTimeout(timer);
+          reject(err);
+        }
+      });
         });
         return;
       } catch (error) {
@@ -1382,6 +1528,9 @@ const executeBatchPlanWithFrontendModules = async (task, logger = () => {}) => {
   const tokenCredentials = regenerateSessionFieldsForCredentials(
     tokenCredentialsSanitized,
     addLog,
+    {
+      force: Boolean(task?.payload?.forceRegenerateSessionFields),
+    },
   );
 
   if (tokenCredentials.length === 0) {
@@ -1419,6 +1568,7 @@ const executeBatchPlanWithFrontendModules = async (task, logger = () => {}) => {
   const tokenStatus = { value: {} };
   const isRunning = { value: false };
   const shouldStop = { value: false };
+  const fatalHandshakeFailure = { value: false };
   const currentRunningTokenId = { value: null };
 
   const batchSettings = {
@@ -1445,18 +1595,14 @@ const executeBatchPlanWithFrontendModules = async (task, logger = () => {}) => {
   });
 
   const hasDuplicateRole = Array.from(roleGroups.values()).some((count) => count > 1);
-  if (hasDuplicateRole && batchSettings.maxActive > 1 && !allowSameRoleParallel) {
+  if (hasDuplicateRole && batchSettings.maxActive > 1) {
     batchSettings.maxActive = 1;
     addLog({
       time: new Date().toLocaleTimeString(),
-      message: "检测到同一角色多账号，已自动切换为串行执行以避免连接互踢",
+      message: allowSameRoleParallel
+        ? "检测到同一角色多账号；后台调度已强制切换为串行执行，避免服务端在握手阶段互踢连接"
+        : "检测到同一角色多账号，已自动切换为串行执行以避免连接互踢",
       type: "warning",
-    });
-  } else if (hasDuplicateRole && batchSettings.maxActive > 1 && allowSameRoleParallel) {
-    addLog({
-      time: new Date().toLocaleTimeString(),
-      message: "检测到同一角色多账号，已按任务配置允许并发执行",
-      type: "info",
     });
   }
 
@@ -1539,7 +1685,7 @@ const executeBatchPlanWithFrontendModules = async (task, logger = () => {}) => {
     });
 
     const taskPromises = selectedTokens.value.map(async (tokenId) => {
-      if (shouldStop.value) return;
+      if (shouldStop.value || fatalHandshakeFailure.value) return;
       tokenStatus.value[tokenId] = "running";
 
       const token = tokens.value.find((t) => t.id === tokenId);
@@ -1547,7 +1693,12 @@ const executeBatchPlanWithFrontendModules = async (task, logger = () => {}) => {
       const MAX_RETRIES = 1;
       let done = false;
 
-      while (retryCount <= MAX_RETRIES && !done && !shouldStop.value) {
+      while (
+        retryCount <= MAX_RETRIES &&
+        !done &&
+        !shouldStop.value &&
+        !fatalHandshakeFailure.value
+      ) {
         try {
           if (retryCount === 0) {
             addLog({
@@ -1585,6 +1736,16 @@ const executeBatchPlanWithFrontendModules = async (task, logger = () => {}) => {
             type: "success",
           });
         } catch (error) {
+          if (isHandshakeRejectedError(error)) {
+            fatalHandshakeFailure.value = true;
+            shouldStop.value = true;
+            addLog({
+              time: new Date().toLocaleTimeString(),
+              message:
+                "检测到后台 WebSocket 握手被服务端直接拒绝，已停止本轮剩余任务；当前更像是服务端不接受 Node 后台连接，而不是普通断线重试可恢复的问题",
+              type: "error",
+            });
+          }
           if (retryCount < MAX_RETRIES && !shouldStop.value) {
             addLog({
               time: new Date().toLocaleTimeString(),
@@ -1627,7 +1788,7 @@ const executeBatchPlanWithFrontendModules = async (task, logger = () => {}) => {
   console.error = () => {};
 
   for (const taskName of selectedTaskNames) {
-    if (shouldStop.value) break;
+    if (shouldStop.value || fatalHandshakeFailure.value) break;
 
     if (["batchbaoku45", "batchbaoku13"].includes(taskName) && !activity.isbaokuActivityOpen) {
       addLog({
@@ -1694,6 +1855,15 @@ const executeBatchPlanWithFrontendModules = async (task, logger = () => {}) => {
       await fn(true);
     } else {
       await fn();
+    }
+
+    if (fatalHandshakeFailure.value) {
+      addLog({
+        time: new Date().toLocaleTimeString(),
+        message: "已因后台握手失败中止后续任务执行",
+        type: "warning",
+      });
+      break;
     }
   }
 

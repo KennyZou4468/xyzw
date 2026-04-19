@@ -136,17 +136,35 @@ const handleUrlImport = async () => {
   try {
     const response = await axios.get(urlForm.url);
     if (response.status === 200 && response.data && response.data.token) {
-      const newToken = {
-        name: urlForm.name,
-        token: response.data.token,
-        server: urlForm.server || "未知",
-        wsUrl: urlForm.wsUrl || "",
-        id: Date.now().toString(),
-        sourceUrl: urlForm.url,
-        importMethod: 'url'
-      };
-      tokenStore.addToken(newToken);
-      message.success("Token添加成功");
+      const existingToken = tokenStore.gameTokens.find(
+        (item) => String(item?.name || "").trim() === String(urlForm.name || "").trim(),
+      );
+
+      if (existingToken?.id) {
+        tokenStore.updateToken(existingToken.id, {
+          ...existingToken,
+          name: urlForm.name,
+          token: response.data.token,
+          server: urlForm.server || existingToken.server || "未知",
+          wsUrl: urlForm.wsUrl || existingToken.wsUrl || "",
+          sourceUrl: urlForm.url,
+          importMethod: "url",
+        });
+        message.success("已更新现有账号为URL导入（保留原账号ID）");
+      } else {
+        const newToken = {
+          name: urlForm.name,
+          token: response.data.token,
+          server: urlForm.server || "未知",
+          wsUrl: urlForm.wsUrl || "",
+          id: Date.now().toString(),
+          sourceUrl: urlForm.url,
+          importMethod: "url",
+        };
+        tokenStore.addToken(newToken);
+        message.success("Token添加成功");
+      }
+
       // 重置表单
       urlForm.name = "";
       urlForm.url = "";
