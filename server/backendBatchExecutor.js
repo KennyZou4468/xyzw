@@ -173,11 +173,97 @@ const parseRoleSessionFromCredentialToken = (rawToken) => {
   }
 };
 
-const sanitizeTokenCredentialsBeforeRun = (tokenCredentials, addLog) => {
+const decodeBinDataToBuffer = (rawData, encodingHint = "base64") => {
+  if (!rawData) return null;
+
+  try {
+    if (encodingHint === "base64" || /^[A-Z0-9+/]*={0,2}$/i.test(rawData)) {
+      const buffer = Buffer.from(rawData, "base64");
+      return new Uint8Array(buffer).buffer;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+};
+
+const refreshCredentialTokenFromBin = async (credential, addLog) => {
+  if (!credential || !credential.binData) {
+    return credential;
+  }
+
+  const payloadBuffer = decodeBinDataToBuffer(
+    credential.binData,
+    credential.binDataEncoding || "base64",
+  );
+  if (!payloadBuffer || payloadBuffer.byteLength === 0) {
+    return credential;
+  }
+
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 12000);
+    
+    const response = await fetch("https://xxz-xyzw.hortorgames.com/login/authuser?_seq=1", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/octet-stream",
+        referrerPolicy: "no-referrer",
+      },
+      body: payloadBuffer,
+      signal: controller.signal,
+    }).finally(() => clearTimeout(timeout));
+
+    if (!response.ok) {
+      throw new Error(`http ${response.status}`);
+    }
+
+    const raw = new Uint8Array(await response.arrayBuffer());
+    const msg = parse(raw, getEnc("auto"));
+    const data = msg?.getData?.();
+    if (!data?.roleToken || !data?.roleId) {
+      throw new Error("authuser returned invalid payload");
+    }
+
+    const now = Date.now();
+    const sessId = now * 100 + Math.floor(Math.random() * 100);
+    const connId = now + Math.floor(Math.random() * 10);
+
+    const refreshedToken = JSON.stringify({
+      ...data,
+      sessId,
+      connId,
+      isRestore: 0,
+    });
+
+    addLog({
+      time: new Date().toLocaleTimeString(),
+      message: `${credential.name || credential.id} 已从BIN刷新Token`,
+      type: "info",
+    });
+
+    return {
+      ...credential,
+      token: refreshedToken,
+      version: (credential.version || 0) + 1,
+      lastRefreshed: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+  } catch (error) {
+    addLog({
+      time: new Date().toLocaleTimeString(),
+      message: `${credential.name || credential.id} BIN刷新失败，继续使用缓存Token: ${error.message}`,
+      type: "warning",
+    });
+    return credential;
+  }
+};
+
+const sanitizeTokenCredentialsBeforeRun = async (tokenCredentials, addLog) => {
   const seenTokenIds = new Set();
   const sanitized = [];
 
-  for (const credential of ensureArray(tokenCredentials)) {
+  for (let credential of ensureArray(tokenCredentials)) {
     if (!credential?.id) continue;
 
     if (seenTokenIds.has(credential.id)) {
@@ -189,6 +275,16 @@ const sanitizeTokenCredentialsBeforeRun = (tokenCredentials, addLog) => {
       continue;
     }
     seenTokenIds.add(credential.id);
+
+    // 尝试从URL刷新
+    if (credential.sourceUrl) {
+      credential = await refreshCredentialTokenFromSource(credential, addLog);
+    }
+    
+    // 尝试从BIN刷新 (如果URL未配置或刷新失败)
+    if (credential.binData) {
+      credential = await refreshCredentialTokenFromBin(credential, addLog);
+    }
 
     sanitized.push(credential);
   }
@@ -240,6 +336,9 @@ const refreshCredentialTokenFromSource = async (credential, addLog) => {
     return {
       ...credential,
       token: refreshedToken,
+      version: (credential.version || 0) + 1,
+      lastRefreshed: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     };
   } catch (error) {
     addLog({
@@ -1519,11 +1618,7 @@ const executeBatchPlanWithFrontendModules = async (task, logger = () => {}) => {
 
   const latestTokenCredentials = mergeWithLatestTokenCredentials(rawTokenCredentials, addLog);
 
-  const tokenCredentialsRaw = await Promise.all(
-    latestTokenCredentials.map((item) => refreshCredentialTokenFromSource(item, addLog)),
-  );
-
-  const tokenCredentialsSanitized = sanitizeTokenCredentialsBeforeRun(tokenCredentialsRaw, addLog);
+  const tokenCredentialsSanitized = await sanitizeTokenCredentialsBeforeRun(latestTokenCredentials, addLog);
 
   const tokenCredentials = regenerateSessionFieldsForCredentials(
     tokenCredentialsSanitized,

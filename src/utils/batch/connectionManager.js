@@ -83,72 +83,62 @@ export function createConnectionManager({ tokenStore, batchSettings, addLog }) {
       throw new Error(`Token not found: ${tokenId}`);
     }
 
-    let status = tokenStore.getWebSocketStatus(tokenId);
-    let connected = status === "connected";
+    let connected = tokenStore.getWebSocketStatus(tokenId) === "connected";
 
     if (!connected) {
-      // 等待连接槽位，限制并发连接数
-      await waitForConnectionSlot();
+      let retryCount = 0;
+      while (!connected && retryCount <= maxRetries) {
+        if (retryCount === 0) {
+          // 第一次尝试连接，需要申请槽位
+          await waitForConnectionSlot();
+          addLog({
+            time: new Date().toLocaleTimeString(),
+            message: `正在连接... (队列: ${connectionQueue.active}/${batchSettings.maxActive})`,
+            type: "info",
+          });
+        } else {
+          // 重连逻辑
+          tokenStore.closeWebSocketConnection(tokenId);
+          const backoff = Math.min(30000, batchSettings.reconnectDelay * Math.pow(2, retryCount - 1));
+          addLog({
+            time: new Date().toLocaleTimeString(),
+            message: `连接超时，${backoff / 1000}秒后开始第 ${retryCount} 次重连...`,
+            type: "warning",
+          });
+          await new Promise((r) => setTimeout(r, backoff));
+          
+          addLog({
+            time: new Date().toLocaleTimeString(),
+            message: `正在重连...`,
+            type: "info",
+          });
+        }
 
-      addLog({
-        time: new Date().toLocaleTimeString(),
-        message: `正在连接... (队列: ${connectionQueue.active}/${batchSettings.maxActive})`,
-        type: "info",
-      });
-
-      tokenStore.createWebSocketConnection(
-        tokenId,
-        latestToken.token,
-        latestToken.wsUrl
-      );
-      connected = await waitForConnection(tokenId);
-
-      const lastConnectionError = tokenStore.getLastConnectionError?.(tokenId);
-      if (!connected && isFatalConnectionFailure(lastConnectionError)) {
-        releaseConnectionSlot();
-        throw new Error(
-          `连接失败（不可恢复）: ${normalizeErrorText(lastConnectionError) || "websocket closed"}`
-        );
-      }
-
-      if (!connected && maxRetries > 0) {
-        addLog({
-          time: new Date().toLocaleTimeString(),
-          message: `连接超时，尝试重连...`,
-          type: "warning",
-        });
-
-        tokenStore.closeWebSocketConnection(tokenId);
-        await new Promise((r) => setTimeout(r, batchSettings.reconnectDelay));
-
-        addLog({
-          time: new Date().toLocaleTimeString(),
-          message: `正在重连...`,
-          type: "info",
-        });
-
-        const refreshedToken = tokens.find((t) => t.id === tokenId);
         tokenStore.createWebSocketConnection(
           tokenId,
-          refreshedToken.token,
-          refreshedToken.wsUrl
+          latestToken.token,
+          latestToken.wsUrl
         );
-
+        
         connected = await waitForConnection(tokenId);
 
-        const retryConnectionError = tokenStore.getLastConnectionError?.(tokenId);
-        if (!connected && isFatalConnectionFailure(retryConnectionError)) {
-          releaseConnectionSlot();
+        if (connected) break;
+
+        // 检查是否是不可恢复的致命错误
+        const lastError = tokenStore.getLastConnectionError?.(tokenId);
+        if (isFatalConnectionFailure(lastError)) {
+          if (retryCount === 0) releaseConnectionSlot();
           throw new Error(
-            `连接失败（不可恢复）: ${normalizeErrorText(retryConnectionError) || "websocket closed"}`
+            `连接失败（不可恢复）: ${normalizeErrorText(lastError) || "websocket closed"}`
           );
         }
+
+        retryCount++;
       }
 
       if (!connected) {
-        // 连接失败，释放槽位
         releaseConnectionSlot();
-        throw new Error("连接失败 (重试后仍超时)");
+        throw new Error(`连接超时，已达到最大重试次数 (${maxRetries})`);
       }
     }
 

@@ -2853,6 +2853,7 @@ import {
   h,
 } from "vue";
 import { useTokenStore, gameTokens, tokenGroups } from "@/stores/tokenStore";
+import useIndexedDB from "@/hooks/useIndexedDB";
 import { $emit } from "@/stores/events/index.ts";
 import { DailyTaskRunner } from "@/utils/dailyTaskRunner";
 import { preloadQuestions } from "@/utils/studyQuestionsFromJSON.js";
@@ -2924,6 +2925,7 @@ const props = defineProps({
 
 // Initialize token store, message service, and task runner
 const tokenStore = useTokenStore();
+const { getArrayBuffer, isReady: indexedDbReady } = useIndexedDB();
 const message = useMessage();
 
 // 排序配置（从localStorage读取，与TokenImport共享）
@@ -3659,10 +3661,13 @@ const checkSchedulerApiHealth = async () => {
 const shouldForceBrowserScheduler = () => {
   try {
     if (typeof window === "undefined") return false;
-    if (window.__XYZW_FORCE_BROWSER_SCHEDULER__ === true) return true;
+    
+    // 如果是调度器浏览器环境，我们不需要开启自动调度，因为任务是由后端触发的
     const query = new URLSearchParams(window.location.search);
+    if (query.get("schedulerEngine") === "browser") return false;
+    
+    if (window.__XYZW_FORCE_BROWSER_SCHEDULER__ === true) return true;
     return (
-      query.get("schedulerEngine") === "browser" ||
       localStorage.getItem("xyzw_force_browser_scheduler") === "true"
     );
   } catch {
@@ -3748,9 +3753,54 @@ const getTaskExecutionEngineLabel = (task) => {
   return "自动";
 };
 
-const buildTokenCredential = (tokenId) => {
+const arrayBufferToBase64 = (buffer) => {
+  try {
+    const bytes = new Uint8Array(buffer);
+    let binary = "";
+    const chunkSize = 0x8000;
+    for (let i = 0; i < bytes.length; i += chunkSize) {
+      const chunk = bytes.subarray(i, i + chunkSize);
+      binary += String.fromCharCode(...chunk);
+    }
+    return btoa(binary);
+  } catch {
+    return "";
+  }
+};
+
+const waitForIndexedDbReady = async (timeoutMs = 3000) => {
+  const start = Date.now();
+  while (!indexedDbReady.value && Date.now() - start < timeoutMs) {
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+};
+
+const buildTokenCredential = async (tokenId) => {
   const token = tokenStore.gameTokens.find((item) => item.id === tokenId);
   if (!token) return null;
+
+  let binData = null;
+  let binDataEncoding = null;
+
+  if (token.importMethod === "bin" || token.importMethod === "wxQrcode") {
+    await waitForIndexedDbReady();
+    const byId = await getArrayBuffer(token.id);
+    const byName = byId ? null : await getArrayBuffer(token.name);
+    const sourceBuffer = byId || byName;
+
+    if (sourceBuffer) {
+      const base64 = arrayBufferToBase64(sourceBuffer);
+      if (base64) {
+        binData = base64;
+        binDataEncoding = "base64";
+      }
+    } else if (token.binData) {
+      // 备用：从 token 对象自带的 binData 中获取
+      binData = token.binData;
+      binDataEncoding = token.binDataEncoding || "base64";
+    }
+  }
+
   return {
     id: token.id,
     name: token.name,
@@ -3758,6 +3808,13 @@ const buildTokenCredential = (tokenId) => {
     wsUrl: token.wsUrl || null,
     importMethod: token.importMethod || "manual",
     sourceUrl: token.sourceUrl || null,
+    ...(binData
+      ? {
+          binData,
+          binDataEncoding,
+          binDataUpdatedAt: Date.now(),
+        }
+      : {}),
   };
 };
 
@@ -3769,6 +3826,8 @@ const credentialFingerprint = (item) => {
     item?.wsUrl || "",
     item?.importMethod || "manual",
     item?.sourceUrl || "",
+    item?.binDataEncoding || "",
+    item?.binData ? String(item.binData).length : 0,
   ].join("|");
 };
 
@@ -3782,14 +3841,14 @@ const isSameCredentialSet = (left, right) => {
   return true;
 };
 
-const toSchedulerApiTask = (task) => {
+const toSchedulerApiTask = async (task) => {
   const selectedTokens = ensureArray(task?.selectedTokens);
   const selectedTasks = ensureArray(task?.selectedTasks);
   const allowSameRoleParallel = Boolean(task?.allowSameRoleParallel);
   const executionEngine = String(task?.executionEngine || "auto").toLowerCase();
-  const tokenCredentials = selectedTokens
-    .map((tokenId) => buildTokenCredential(tokenId))
-    .filter(Boolean);
+  const tokenCredentials = (await Promise.all(
+    selectedTokens.map((tokenId) => buildTokenCredential(tokenId)),
+  )).filter(Boolean);
 
   if (selectedTasks.length === 0) {
     return {
@@ -3825,8 +3884,8 @@ const toSchedulerApiTask = (task) => {
   };
 };
 
-const toSchedulerApiTasks = (tasks) => {
-  return ensureArray(tasks).map((task) => toSchedulerApiTask(task));
+const toSchedulerApiTasks = async (tasks) => {
+  return Promise.all(ensureArray(tasks).map((task) => toSchedulerApiTask(task)));
 };
 
 const enrichTaskTokenCredentials = (task) => {
@@ -3869,7 +3928,7 @@ const enrichTasksTokenCredentials = (tasks) => {
 };
 
 const pushSchedulerTasks = async (tasks) => {
-  const apiTasks = toSchedulerApiTasks(tasks);
+  const apiTasks = await toSchedulerApiTasks(tasks);
   const response = await fetch(`${schedulerApiBase}/tasks`, {
     method: "PUT",
     headers: {
@@ -4003,10 +4062,17 @@ const manualExecuteTask = async (task) => {
 // Load scheduled tasks from localStorage
 const loadScheduledTasks = async () => {
   try {
+    const automationContext = isPlaywrightAutomationContext();
     try {
       const remoteTasks = await fetchSchedulerTasks();
       if (remoteTasks.length > 0) {
         const normalizedRemoteTasks = normalizeScheduledTasks(remoteTasks);
+        if (automationContext) {
+          scheduledTasks.value = normalizedRemoteTasks;
+          localStorage.setItem("scheduledTasks", JSON.stringify(normalizedRemoteTasks));
+          return;
+        }
+
         const enrichedRemoteTasks = enrichTasksTokenCredentials(normalizedRemoteTasks);
         scheduledTasks.value = enrichedRemoteTasks.tasks;
         localStorage.setItem(
@@ -4023,6 +4089,11 @@ const loadScheduledTasks = async () => {
       if (localSaved) {
         const parsedLocal = JSON.parse(localSaved);
         const localTasks = normalizeScheduledTasks(parsedLocal);
+        if (automationContext) {
+          scheduledTasks.value = localTasks;
+          return;
+        }
+
         const enrichedLocalTasks = enrichTasksTokenCredentials(localTasks);
         scheduledTasks.value = enrichedLocalTasks.tasks;
         if (localTasks.length > 0) {
@@ -4056,7 +4127,13 @@ const loadScheduledTasks = async () => {
 // Save scheduled tasks to localStorage
 const saveScheduledTasks = async () => {
   try {
+    const automationContext = isPlaywrightAutomationContext();
     scheduledTasks.value = normalizeScheduledTasks(scheduledTasks.value);
+    if (automationContext) {
+      localStorage.setItem("scheduledTasks", JSON.stringify(scheduledTasks.value));
+      return;
+    }
+
     const enriched = enrichTasksTokenCredentials(scheduledTasks.value);
     scheduledTasks.value = enriched.tasks;
     const dataToSave = JSON.stringify(scheduledTasks.value);
@@ -4989,6 +5066,52 @@ const verifyTaskDependencies = async (task) => {
     return false;
   }
 
+  // Verify IndexedDB and BIN data availability
+  const candidateTokenIds = ensureArray(
+    task?.connectedTokens || task?.selectedTokens,
+  );
+  
+  let binDataMissingCount = 0;
+  for (const tokenId of candidateTokenIds) {
+    const token = tokenStore.gameTokens.find(t => t.id === tokenId);
+    if (token && (token.importMethod === 'bin' || token.importMethod === 'wxQrcode')) {
+      // 检查是否有备用 binData
+      if (!token.binData) {
+        // 如果没有备用，检查 IndexedDB
+        if (!indexedDbReady.value) {
+          binDataMissingCount++;
+        } else {
+          const buffer = await getArrayBuffer(token.id) || await getArrayBuffer(token.name);
+          if (!buffer) {
+            binDataMissingCount++;
+          }
+        }
+      }
+    }
+  }
+
+  if (!indexedDbReady.value) {
+    addLog({
+      time: new Date().toLocaleTimeString(),
+      message: "⚠️ IndexedDB 未就绪（Docker环境常见），将依赖备用快照刷新",
+      type: "warning",
+    });
+  }
+
+  if (binDataMissingCount > 0) {
+    addLog({
+      time: new Date().toLocaleTimeString(),
+      message: `⚠️ 检测到 ${binDataMissingCount} 个账号缺失 BIN 刷新数据，这些账号可能无法自动续期`,
+      type: "warning",
+    });
+  } else {
+    addLog({
+      time: new Date().toLocaleTimeString(),
+      message: "✅ BIN 刷新数据完整性检查通过",
+      type: "info",
+    });
+  }
+
   // Verify task functions exist
   for (const taskName of selectedTaskNames) {
     const taskFunction = eval(taskName);
@@ -5048,6 +5171,74 @@ const executeScheduledTask = async (task) => {
   }
 
   try {
+    const candidateTokenIds = ensureArray(
+      task?.connectedTokens || task?.selectedTokens,
+    ).filter((tokenId) => tokens.value.some((t) => t.id === tokenId));
+
+    if (candidateTokenIds.length > 0) {
+      addLog({
+        time: new Date().toLocaleTimeString(),
+        message: `执行前Token刷新开始（${candidateTokenIds.length}个账号）`,
+        type: "info",
+      });
+
+      let refreshedCount = 0;
+      let skippedCount = 0;
+      let failedCount = 0;
+
+      for (const tokenId of candidateTokenIds) {
+        const token = tokens.value.find((t) => t.id === tokenId);
+        const tokenName = token?.name || tokenId;
+        
+        // 如果是在调度器浏览器环境下，跳过页面侧刷新，因为后端预检已经刷新过了
+        const isSchedulerBrowser = new URLSearchParams(window.location.search).get('schedulerEngine') === 'browser';
+        if (isSchedulerBrowser) {
+          skippedCount += 1;
+          continue;
+        }
+
+        const result = await tokenStore.refreshTokenForTaskExecution(tokenId);
+
+        if (result?.success && !result?.skipped) {
+          refreshedCount += 1;
+          addLog({
+            time: new Date().toLocaleTimeString(),
+            message: `${tokenName} Token刷新成功`,
+            type: "success",
+          });
+          continue;
+        }
+
+        if (result?.skipped) {
+          skippedCount += 1;
+          if (result?.reason === "bin-data-missing") {
+            addLog({
+              time: new Date().toLocaleTimeString(),
+              message: `${tokenName} 未找到BIN刷新数据，已跳过执行前刷新（继续使用当前Token）`,
+              type: "info",
+            });
+          }
+          continue;
+        }
+
+        failedCount += 1;
+        addLog({
+          time: new Date().toLocaleTimeString(),
+          message: `${tokenName} Token刷新失败（继续执行）: ${result?.reason || "unknown"}`,
+          type: "warning",
+        });
+      }
+
+      addLog({
+        time: new Date().toLocaleTimeString(),
+        message: `执行前Token刷新完成：成功${refreshedCount}，跳过${skippedCount}，失败${failedCount}`,
+        type: failedCount > 0 ? "warning" : "success",
+      });
+
+      // 刷新后尽快把最新token快照推送到调度器，避免后续批次仍使用旧凭证
+      queueSilentSchedulerSnapshotSync("pre-run-token-refresh");
+    }
+
     // Verify dependencies before executing task
     const dependenciesValid = await verifyTaskDependencies(task);
     if (!dependenciesValid) {
@@ -6793,6 +6984,7 @@ const startBatch = async () => {
             message: `${tokenName} 执行失败: ${error.message}`,
             type: "error",
           });
+          break;
         }
       } finally {
         // 完成后关闭连接并释放槽位

@@ -1,4 +1,5 @@
-FROM mcr.microsoft.com/playwright:v1.59.1-noble
+ARG PLAYWRIGHT_BASE_IMAGE=mcr.microsoft.com/playwright:v1.59.1-noble
+FROM ${PLAYWRIGHT_BASE_IMAGE}
 
 ENV NODE_ENV=production
 WORKDIR /app

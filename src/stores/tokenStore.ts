@@ -31,7 +31,13 @@ declare interface TokenData {
   avatar?: string; // 用户头像URL
   upgradedToPermanent?: boolean; // 是否升级为长期有效
   upgradedAt?: string; // 升级时间
-  updatedAt?: string; // 更新时间
+  updatedAt?: string;
+  level?: number;
+  profession?: string;
+  binData?: string; // 备用存储：Base64格式的BIN数据
+  binDataEncoding?: string; // 备用存储的编码格式
+  version?: number; // 凭证版本号
+  lastRefreshed?: string; // 最近一次刷新成功的ISO时间
 }
 
 declare interface WebSocketConnection {
@@ -222,9 +228,14 @@ export const useTokenStore = defineStore("tokens", () => {
       sourceUrl: tokenData.sourceUrl || null, // Token来源URL（用于刷新）
       importMethod: tokenData.importMethod || "manual", // 导入方式：manual 或 url
       avatar: tokenData.avatar || "", // 用户头像
+      binData: tokenData.binData || null,
+      binDataEncoding: tokenData.binDataEncoding || null,
+      version: 1,
+      lastRefreshed: tokenData.lastRefreshed || new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     };
 
-    gameTokens.value.push(newToken);
+    gameTokens.value.push(newToken as TokenData);
     return newToken;
   };
 
@@ -241,9 +252,15 @@ export const useTokenStore = defineStore("tokens", () => {
         typeof updates.importMethod === "string" &&
         updates.importMethod !== gameTokens.value[index].importMethod;
 
+      const current = gameTokens.value[index];
+      const nextVersion = (current.version || 0) + 1;
+      const lastRefreshed = tokenValueChanged ? new Date().toISOString() : current.lastRefreshed;
+
       gameTokens.value[index] = {
-        ...gameTokens.value[index],
+        ...current,
         ...updates,
+        version: nextVersion,
+        lastRefreshed,
         updatedAt: new Date().toISOString(),
       };
 
@@ -472,6 +489,98 @@ export const useTokenStore = defineStore("tokens", () => {
       markTokenRefreshUnrecoverable(tokenId, "Token 已过期且无法自动刷新，请重新导入");
       wsLogger.error(`Token刷新失败，请手动重新导入 [${tokenId}]`);
       return false;
+    }
+  };
+
+  // 供定时任务执行前调用的安全刷新：仅处理URL/BIN/WX来源，手动token直接跳过
+  const refreshTokenForTaskExecution = async (tokenId: string) => {
+    const gameToken = gameTokens.value.find((t) => t.id === tokenId);
+    if (!gameToken) {
+      return { success: false, skipped: false, reason: "token-not-found" };
+    }
+
+    try {
+      if (gameToken.sourceUrl) {
+        const refreshedToken = await scheduleAuthUserRequest(async () => {
+          const response = await fetch(gameToken.sourceUrl!);
+          if (!response.ok) return null;
+          const data = await response.json();
+          return data?.token ? String(data.token) : null;
+        });
+
+        if (refreshedToken) {
+          updateToken(tokenId, {
+            ...gameToken,
+            token: refreshedToken,
+            sourceUrl: gameToken.sourceUrl,
+            importMethod: "url",
+            lastUsed: new Date().toISOString(),
+          });
+          return { success: true, skipped: false, source: "url" };
+        }
+
+        return { success: false, skipped: false, reason: "url-empty-token" };
+      }
+
+      if (
+        gameToken.importMethod === "bin" ||
+        gameToken.importMethod === "wxQrcode"
+      ) {
+        let userToken: ArrayBuffer | null = await getArrayBuffer(tokenId);
+        let usedOldKey = false;
+
+        if (!userToken) {
+          const tokenByName = await getArrayBuffer(gameToken.name);
+          if (tokenByName) {
+            userToken = tokenByName;
+            usedOldKey = true;
+          }
+        }
+
+        if (!userToken) {
+          if (gameToken.binData) {
+            try {
+              const binaryString = atob(gameToken.binData);
+              const bytes = new Uint8Array(binaryString.length);
+              for (let i = 0; i < binaryString.length; i++) {
+                bytes[i] = binaryString.charCodeAt(i);
+              }
+              userToken = bytes.buffer;
+              console.log(`${gameToken.name} 使用备用 binData 刷新`);
+            } catch (e) {
+              console.error("解析备用 binData 失败", e);
+            }
+          }
+        }
+
+        if (!userToken) {
+          return { success: true, skipped: true, reason: "bin-data-missing" };
+        }
+
+        const refreshedToken = await transformToken(userToken);
+        updateToken(tokenId, {
+          ...gameToken,
+          token: refreshedToken,
+          lastUsed: new Date().toISOString(),
+        });
+
+        if (usedOldKey) {
+          const saved = await storeArrayBuffer(tokenId, userToken);
+          if (saved) {
+            await deleteArrayBuffer(gameToken.name);
+          }
+        }
+
+        return { success: true, skipped: false, source: gameToken.importMethod };
+      }
+
+      return { success: true, skipped: true, reason: "manual-or-unsupported" };
+    } catch (error: any) {
+      return {
+        success: false,
+        skipped: false,
+        reason: error?.message || "refresh-error",
+      };
     }
   };
 
@@ -1733,6 +1842,7 @@ export const useTokenStore = defineStore("tokens", () => {
     cleanExpiredTokens,
     upgradeTokenToPermanent,
     initTokenStore,
+    refreshTokenForTaskExecution,
 
     //游戏内发送消息方法
     sendMessageToLegion,

@@ -85,6 +85,16 @@ const $emit = defineEmits(["cancel", "ok"]);
 
 const { storeArrayBuffer } = useIndexedDB();
 
+const arrayBufferToBase64 = (buffer: ArrayBuffer) => {
+  let binary = "";
+  const bytes = new Uint8Array(buffer);
+  const len = bytes.byteLength;
+  for (let i = 0; i < len; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return window.btoa(binary);
+};
+
 const cancel = () => {
   roleList.value = [];
   $emit("cancel");
@@ -235,6 +245,8 @@ const addSelectedRole = async (roleInfo: any) => {
       roleIndex: roleIndex,
       wsUrl: importForm.wsUrl || "",
       importMethod: "bin",
+      binData: arrayBufferToBase64(newBinBuffer),
+      binDataEncoding: "base64",
     });
 
     message.success(`已添加角色: ${finalName}`);

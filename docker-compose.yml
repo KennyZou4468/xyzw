@@ -13,6 +13,8 @@ services:
     build:
       context: .
       dockerfile: docker/scheduler.dockerfile
+      args:
+        PLAYWRIGHT_BASE_IMAGE: ${PLAYWRIGHT_BASE_IMAGE:-mcr.microsoft.com/playwright:v1.59.1-noble}
     image: xyzw-scheduler:local
     container_name: xyzw-scheduler-local
     restart: unless-stopped
@@ -20,10 +22,11 @@ services:
       TZ: Asia/Shanghai
       XYZW_EXECUTION_ENGINE: playwright
       XYZW_PLAYWRIGHT_APP_URL: http://web/admin/batch-daily-tasks
-      XYZW_PLAYWRIGHT_USER_DATA_DIR: /app/runtime/playwright-profile
+      XYZW_PLAYWRIGHT_USER_DATA_DIR: /srv/xyzw/browser-profile
       XYZW_PLAYWRIGHT_HEADLESS: "true"
-      XYZW_PLAYWRIGHT_USE_TEMP_PROFILE: "true"
+      XYZW_PLAYWRIGHT_USE_TEMP_PROFILE: "false"
     ports:
       - "127.0.0.1:8090:8090"
     volumes:
       - ./server-runtime:/app/runtime
+      - ./server-runtime/browser-profile:/srv/xyzw/browser-profile
