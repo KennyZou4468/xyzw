@@ -71,7 +71,6 @@ jspm_packages/
 tmp/
 temp/
 
-.github
 *.bat
 *.exe
 node_modules/
