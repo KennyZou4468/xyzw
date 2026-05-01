@@ -5,7 +5,8 @@ services:
     build:
       context: .
       dockerfile: docker/dockerfile
-    image: xyzw-web:local
+    # 修改这里：本地构建会产生这个名字，GitHub Actions 也会推送到这个地址
+    image: ccr.ccs.tencentyun.com/xyzw/zyzwapp:web
     ports:
       - "127.0.0.1:8080:80"
 
@@ -15,7 +16,8 @@ services:
       dockerfile: docker/scheduler.dockerfile
       args:
         PLAYWRIGHT_BASE_IMAGE: ${PLAYWRIGHT_BASE_IMAGE:-mcr.microsoft.com/playwright:v1.59.1-noble}
-    image: xyzw-scheduler:local
+    # 修改这里：使用不同的 tag (scheduler) 来区分同一个仓库下的不同镜像
+    image: ccr.ccs.tencentyun.com/xyzw/zyzwapp:scheduler
     container_name: xyzw-scheduler-local
     restart: unless-stopped
     environment:
