@@ -224,4 +224,4 @@ curl -s http://127.0.0.1:8080/api/scheduler/health
 
 说明：删除 `playwright-profile/` 会丢失浏览器侧持久化状态，通常仅在排障时手动清理。
 http://127.0.0.1:18080/admin/batch-daily-tasks
-ssh -L 18080:127.0.0.1:8080 root@120.77.81.153
+ssh -L 18080:127.0.0.1:8080 kennys

@@ -309,11 +309,22 @@ const tryGetWeixinQR = async () => {
     const html = response.responseText;
     const doc = new DOMParser().parseFromString(html, "text/html");
 
-    let qrUrl = doc.querySelector("img.auth_qrcode")?.src;
+    const imgEl = doc.querySelector("img.auth_qrcode");
+    let qrUrl = imgEl?.getAttribute("src");
+
+    if (qrUrl && qrUrl.startsWith("/")) {
+      // 处理相对路径，确保走代理
+      qrUrl = "/api/weixin" + qrUrl;
+    }
 
     if (!qrUrl) {
       const m = html.match(/https:\/\/[^"']*qrcode[^"']*/i);
       if (m) qrUrl = m[0];
+    }
+
+    if (!qrUrl) {
+      const m2 = html.match(/\/connect\/qrcode\/[^"']*/i);
+      if (m2) qrUrl = "/api/weixin" + m2[0];
     }
 
     if (!qrUrl) {
