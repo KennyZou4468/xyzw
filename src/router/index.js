@@ -1,9 +1,9 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import * as autoRoutes from "vue-router/auto-routes";
+import { routes } from "vue-router/auto-routes";
 import { useTokenStore } from '@/stores/tokenStore'
 import { isNowInLegionWarTime } from "@/utils/clubBattleUtils"
 
-const generatedRoutes = autoRoutes.routes ?? [];
+const generatedRoutes = routes ?? [];
 
 const my_routes = [
   {
@@ -149,9 +149,6 @@ const router = createRouter({
     }
   }
 })
-
-// 热更新路由
-autoRoutes.handleHotUpdate?.(router);
 
 // 导航守卫
 router.beforeEach((to, from, next) => {
