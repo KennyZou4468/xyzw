@@ -83,3 +83,6 @@ server/scheduler.tasks.json.bak
 server/scheduler.ui.logs.json
 server/.playwright-profile/
 server-runtime/
+
+# Local scripts
+script/
