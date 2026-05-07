@@ -7,3 +7,4 @@ yarn-error.log
 .DS_Store
 server-runtime
 server/.playwright-profile
+*.tar
