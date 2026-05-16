@@ -86,6 +86,7 @@ const sanitizeRuntimeStateEntry = (state) => {
     lastDailyKey: state.lastDailyKey || null,
     lastCronKey: state.lastCronKey || null,
     executed: Boolean(state.executed),
+    lastLogClearDate: state.lastLogClearDate || null,
   };
 };
 
@@ -645,6 +646,35 @@ const startApiServer = () => {
       return;
     }
 
+    if (req.method === "GET" && url.pathname === "/api/scheduler/logs/download") {
+      try {
+        if (!fs.existsSync(logPath)) {
+          res.writeHead(404, {
+            "Content-Type": "text/plain; charset=utf-8",
+            "Access-Control-Allow-Origin": "*",
+          });
+          res.end("Log file not found");
+          return;
+        }
+        const stat = fs.statSync(logPath);
+        res.writeHead(200, {
+          "Content-Type": "text/plain; charset=utf-8",
+          "Content-Length": stat.size,
+          "Content-Disposition": `attachment; filename="scheduler_${new Date().toISOString().slice(0, 10)}.log"`,
+          "Access-Control-Allow-Origin": "*",
+        });
+        const readStream = fs.createReadStream(logPath);
+        readStream.pipe(res);
+      } catch (error) {
+        res.writeHead(500, {
+          "Content-Type": "text/plain; charset=utf-8",
+          "Access-Control-Allow-Origin": "*",
+        });
+        res.end("Internal Server Error: " + error.message);
+      }
+      return;
+    }
+
     if (req.method === "GET" && url.pathname === "/api/scheduler/ui-logs") {
       try {
         const logs = readUiLogs();
@@ -871,8 +901,34 @@ const executeTask = async (task) => {
   }
 };
 
+const clearLogsDaily = () => {
+  const now = new Date();
+  const todayStr = now.toISOString().slice(0, 10);
+  
+  const globalState = runtimeState.get("global_logs") || {};
+  if (globalState.lastLogClearDate !== todayStr) {
+    writeLog("INFO", `cleaning daily logs for ${todayStr}...`);
+    
+    try {
+      if (fs.existsSync(logPath)) {
+        fs.writeFileSync(logPath, "", "utf8");
+      }
+      writeUiLogs([]);
+      writeLog("INFO", "daily logs cleared.");
+    } catch (error) {
+      console.error(`failed to clear daily logs: ${error.message}`);
+    }
+
+    globalState.lastLogClearDate = todayStr;
+    runtimeState.set("global_logs", globalState);
+    persistRuntimeStateToDisk();
+  }
+};
+
 const tick = async () => {
   if (stopping) return;
+
+  clearLogsDaily();
 
   let tasks = [];
   try {

@@ -9,7 +9,7 @@ PLAYWRIGHT_BASE_IMAGE="${PLAYWRIGHT_BASE_IMAGE:-mcr.microsoft.com/playwright:v1.
 
 pull_with_retry() {
 	image="$1"
-	max_attempts="${2:-5}"
+max_attempts="${2:-5}"
 	attempt=1
 	while [ "$attempt" -le "$max_attempts" ]; do
 		echo "[scheduler] Pulling base image ($attempt/$max_attempts): $image"

@@ -695,6 +695,7 @@
                   </n-button>
                   <n-button size="small" @click="clearLogs"> 清空日志 </n-button>
                   <n-button size="small" @click="copyLogs"> 复制日志 </n-button>
+                  <n-button size="small" @click="downloadLogs"> 下载24h日志 </n-button>
                 </div>
               </div>
             </div>
@@ -6630,6 +6631,28 @@ const copyLogs = () => {
     .catch((err) => {
       message.error("复制日志失败: " + err.message);
     });
+};
+
+const downloadLogs = async () => {
+  try {
+    const downloadUrl = `${schedulerApiBase}/logs/download`;
+    const response = await fetch(downloadUrl);
+    if (!response.ok) throw new Error("下载失败");
+
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `scheduler_${new Date().toISOString().slice(0, 10)}.log`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+
+    message.success("日志下载开始");
+  } catch (err) {
+    message.error("下载日志失败: " + err.message);
+  }
 };
 
 const clearLogs = () => {
