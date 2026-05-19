@@ -117,6 +117,8 @@ const persistRuntimeStateToDisk = () => {
 
     ensureParentDir(statePath);
     fs.writeFileSync(statePath, JSON.stringify(payload, null, 2), "utf8");
+    // Log to console for debugging, but not to the log file to avoid noise
+    console.debug(`[DEBUG] scheduler state persisted to ${statePath}`);
   } catch (error) {
     writeLog("WARN", `failed to persist runtime state: ${error.message}`);
   }
@@ -136,17 +138,20 @@ const normalizeLogMessage = (message) => {
   const noisePatterns = [
     /^at\s+/i,
     /^call log:?$/i,
-    /^-\s+navigating to\s+/i,
-    /^-\s+waiting for\s+/i,
+    // Keep Playwright traces for better visibility in logs
+    // /^-\s+navigating to\s+/i,
+    // /^-\s+waiting for\s+/i,
   ];
 
   const filtered = lines.filter((line) => !noisePatterns.some((pattern) => pattern.test(line)));
-  const picked = (filtered[0] || lines[0] || "").trim();
-  return picked || "";
+  // Join all lines with a space to avoid breaking the one-line-per-entry format
+  // but preserving all information.
+  return (filtered.length > 0 ? filtered : lines).join(" ");
 };
 
 const writeLog = (level, message) => {
   const normalizedMessage = normalizeLogMessage(message);
+  if (!normalizedMessage) return;
   const line = `${new Date().toISOString()} [${level}] ${normalizedMessage}`;
   console.log(line);
   ensureParentDir(logPath);
@@ -504,7 +509,7 @@ const sendJson = (res, statusCode, data) => {
 };
 
 const readSchedulerLogLines = (tail = 200, sinceMs = 0) => {
-  if (!fs.existsSync(logPath)) {
+  if (!fs.existsSync(logPath) && !fs.existsSync(`${logPath}.yesterday`)) {
     return [];
   }
 
@@ -520,9 +525,24 @@ const readSchedulerLogLines = (tail = 200, sinceMs = 0) => {
     );
   };
 
-  const text = fs.readFileSync(logPath, "utf8");
-  const lines = text
-    .split("\n")
+  let allLines = [];
+  try {
+    const yesterdayPath = `${logPath}.yesterday`;
+    if (fs.existsSync(yesterdayPath)) {
+      const text = fs.readFileSync(yesterdayPath, "utf8");
+      allLines = allLines.concat(text.split("\n"));
+    }
+    if (fs.existsSync(logPath)) {
+      const text = fs.readFileSync(logPath, "utf8");
+      allLines = allLines.concat(text.split("\n"));
+    }
+  } catch (error) {
+    console.error(`failed to read log files: ${error.message}`);
+  }
+
+  if (allLines.length === 0) return [];
+
+  const lines = allLines
     .map((line) => line.trim())
     .filter((line) => !isNoiseLogLine(line));
 
@@ -648,7 +668,12 @@ const startApiServer = () => {
 
     if (req.method === "GET" && url.pathname === "/api/scheduler/logs/download") {
       try {
-        if (!fs.existsSync(logPath)) {
+        const yesterdayPath = `${logPath}.yesterday`;
+        const paths = [];
+        if (fs.existsSync(yesterdayPath)) paths.push(yesterdayPath);
+        if (fs.existsSync(logPath)) paths.push(logPath);
+
+        if (paths.length === 0) {
           res.writeHead(404, {
             "Content-Type": "text/plain; charset=utf-8",
             "Access-Control-Allow-Origin": "*",
@@ -656,15 +681,34 @@ const startApiServer = () => {
           res.end("Log file not found");
           return;
         }
-        const stat = fs.statSync(logPath);
+
+        let totalSize = 0;
+        for (const p of paths) {
+          totalSize += fs.statSync(p).size;
+        }
+
         res.writeHead(200, {
           "Content-Type": "text/plain; charset=utf-8",
-          "Content-Length": stat.size,
+          "Content-Length": totalSize,
           "Content-Disposition": `attachment; filename="scheduler_${new Date().toISOString().slice(0, 10)}.log"`,
           "Access-Control-Allow-Origin": "*",
         });
-        const readStream = fs.createReadStream(logPath);
-        readStream.pipe(res);
+
+        const sendNext = (index) => {
+          if (index >= paths.length) {
+            res.end();
+            return;
+          }
+          const readStream = fs.createReadStream(paths[index]);
+          readStream.on("end", () => sendNext(index + 1));
+          readStream.on("error", (err) => {
+            console.error(`Download stream error: ${err.message}`);
+            res.end();
+          });
+          readStream.pipe(res, { end: false });
+        };
+
+        sendNext(0);
       } catch (error) {
         res.writeHead(500, {
           "Content-Type": "text/plain; charset=utf-8",
@@ -863,6 +907,7 @@ const executeTask = async (task) => {
   }
 
   if (task.action === "batchPlan") {
+    const accountName = task.payload?.accountName || task.name || task.id;
     const schedulerLogger = (message, level = "info") => {
       const mappedLevel =
         level === "error"
@@ -872,7 +917,8 @@ const executeTask = async (task) => {
             : level === "success"
               ? "TASK"
               : "INFO";
-      writeLog(mappedLevel, message);
+      // Prepend account name for better traceability
+      writeLog(mappedLevel, `[${accountName}] ${message}`);
     };
 
     const taskExecutionEngine = String(
@@ -903,18 +949,32 @@ const executeTask = async (task) => {
 
 const clearLogsDaily = () => {
   const now = new Date();
-  const todayStr = now.toISOString().slice(0, 10);
+  // Use local date string (YYYY-MM-DD) to avoid UTC midnight (8 AM Beijing) clearing
+  const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
   
   const globalState = runtimeState.get("global_logs") || {};
   if (globalState.lastLogClearDate !== todayStr) {
-    writeLog("INFO", `cleaning daily logs for ${todayStr}...`);
+    const msg = `cleaning daily logs for ${todayStr} (last clear: ${globalState.lastLogClearDate || "never"})...`;
+    writeLog("INFO", msg);
     
     try {
       if (fs.existsSync(logPath)) {
+        // Rotation: rename old log instead of just clearing it
+        const yesterdayPath = `${logPath}.yesterday`;
+        try {
+          if (fs.existsSync(yesterdayPath)) {
+            fs.unlinkSync(yesterdayPath);
+          }
+          fs.renameSync(logPath, yesterdayPath);
+        } catch (err) {
+          writeLog("WARN", `failed to rotate log file: ${err.message}`);
+          fs.writeFileSync(logPath, "", "utf8");
+        }
+      } else {
         fs.writeFileSync(logPath, "", "utf8");
       }
       writeUiLogs([]);
-      writeLog("INFO", "daily logs cleared.");
+      writeLog("INFO", "daily logs rotated and cleared.");
     } catch (error) {
       console.error(`failed to clear daily logs: ${error.message}`);
     }

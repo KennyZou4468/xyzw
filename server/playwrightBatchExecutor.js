@@ -787,7 +787,24 @@ export const executeBatchPlanWithPlaywright = async (
             : entry?.type === "success"
               ? "success"
               : "info";
-      logger(entry?.message || "", level);
+      
+      // Attempt to ensure message starts with account name context if it looks like a task log
+      let message = entry?.message || "";
+      const firstTokenName = browserTokens[0]?.name || browserTokens[0]?.id || "browser";
+      
+      // If the browser didn't prepend the token name (which it sometimes does for "startBatch" logs),
+      // but the log level indicates it's from a runner, we try to hint it.
+      // Note: browser scheduler usually runs multiple tokens sequentially or in parallel,
+      // and typically prepends its own name. If not, we add a general indicator.
+      if (!message.startsWith("[") && browserTokens.length === 1) {
+        message = `[${firstTokenName}] ${message}`;
+      } else if (!message.startsWith("[") && browserTokens.length > 1) {
+        // For multi-account playwright runs, the browser's BatchDailyTasks.vue 
+        // usually already prepends "[Name]". If it didn't, we add a generic tag.
+        message = `[Playwright] ${message}`;
+      }
+
+      logger(message, level);
     });
 
     await page.addInitScript(

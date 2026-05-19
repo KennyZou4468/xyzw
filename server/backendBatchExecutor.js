@@ -1798,13 +1798,13 @@ const executeBatchPlanWithFrontendModules = async (task, logger = () => {}) => {
           if (retryCount === 0) {
             addLog({
               time: new Date().toLocaleTimeString(),
-              message: `=== 开始执行: ${token?.name || tokenId} ===`,
+              message: `[${token?.name || tokenId}] === 开始执行 ===`,
               type: "info",
             });
           } else {
             addLog({
               time: new Date().toLocaleTimeString(),
-              message: `=== 尝试重试: ${token?.name || tokenId} (第${retryCount}次) ===`,
+              message: `[${token?.name || tokenId}] === 尝试重试 (第${retryCount}次) ===`,
               type: "info",
             });
           }
@@ -1817,7 +1817,16 @@ const executeBatchPlanWithFrontendModules = async (task, logger = () => {}) => {
 
           await runner.run(
             tokenId,
-            { onLog: (log) => addLog(log), onProgress: () => {} },
+            {
+              onLog: (log) => {
+                // Ensure per-account logs are tagged
+                const msg = log.message.startsWith(`[${token?.name || tokenId}]`)
+                  ? log.message
+                  : `[${token?.name || tokenId}] ${log.message}`;
+                addLog({ ...log, message: msg });
+              },
+              onProgress: () => {},
+            },
             task?.payload?.dailyRunnerSettingsByToken?.[tokenId] ||
               task?.payload?.dailyRunnerSettings ||
               null,
@@ -1827,7 +1836,7 @@ const executeBatchPlanWithFrontendModules = async (task, logger = () => {}) => {
           tokenStatus.value[tokenId] = "completed";
           addLog({
             time: new Date().toLocaleTimeString(),
-            message: `=== ${token?.name || tokenId} 执行完成 ===`,
+            message: `[${token?.name || tokenId}] === 执行完成 ===`,
             type: "success",
           });
         } catch (error) {
@@ -1837,14 +1846,14 @@ const executeBatchPlanWithFrontendModules = async (task, logger = () => {}) => {
             addLog({
               time: new Date().toLocaleTimeString(),
               message:
-                "检测到后台 WebSocket 握手被服务端直接拒绝，已停止本轮剩余任务；当前更像是服务端不接受 Node 后台连接，而不是普通断线重试可恢复的问题",
+                `[${token?.name || tokenId}] 检测到后台 WebSocket 握手被服务端直接拒绝，已停止本轮剩余任务`,
               type: "error",
             });
           }
           if (retryCount < MAX_RETRIES && !shouldStop.value) {
             addLog({
               time: new Date().toLocaleTimeString(),
-              message: `${token?.name || tokenId} 执行出错: ${formatErrorWithDiagnosis(error)}，等待3秒后重试...`,
+              message: `[${token?.name || tokenId}] 执行出错: ${formatErrorWithDiagnosis(error)}，等待3秒后重试...`,
               type: "warning",
             });
             await sleep(3000);
@@ -1853,7 +1862,7 @@ const executeBatchPlanWithFrontendModules = async (task, logger = () => {}) => {
             tokenStatus.value[tokenId] = "failed";
             addLog({
               time: new Date().toLocaleTimeString(),
-              message: `${token?.name || tokenId} 执行失败: ${formatErrorWithDiagnosis(error)}`,
+              message: `[${token?.name || tokenId}] 执行失败: ${formatErrorWithDiagnosis(error)}`,
               type: "error",
             });
             break;
@@ -1863,7 +1872,7 @@ const executeBatchPlanWithFrontendModules = async (task, logger = () => {}) => {
           connectionManager.releaseConnectionSlot();
           addLog({
             time: new Date().toLocaleTimeString(),
-            message: `${token?.name || tokenId} 连接已关闭  (队列: ${connectionManager.connectionQueue.active}/${batchSettings.maxActive})`,
+            message: `[${token?.name || tokenId}] 连接已关闭  (队列: ${connectionManager.connectionQueue.active}/${batchSettings.maxActive})`,
             type: "info",
           });
         }
