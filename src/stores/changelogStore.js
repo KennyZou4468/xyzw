@@ -14,6 +14,22 @@ export const useChangelogStore = defineStore("changelog", () => {
    */
   const changelogs = ref([
     {
+      version: "v1.1",
+      date: "2026-05-19",
+      type: "minor",
+      title: "系统版本更新与日志增强",
+      features: [
+        "系统版本号统一调整为 1.1",
+        "日志追踪增强：现在每行日志都会明确标识执行账号",
+        "部署脚本优化：加入自动清理临时文件及 npm 构建加速",
+        "跨天日志滚动：引入昨天日志存档机制，解决 0 点清空问题",
+      ],
+      improvements: [
+        "优化了日志下载功能，支持合并最近 48 小时的记录",
+        "改进了 Docker 离线构建的稳定性",
+      ],
+    },
+    {
       version: "v1.3.0",
       date: "2025-01-15",
       type: "minor",
