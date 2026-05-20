@@ -56,6 +56,8 @@ export class DailyTaskRunner {
         time: new Date().toLocaleTimeString(),
         message,
         type,
+        tokenId: this.currentTokenId,
+        tokenName: this.currentTokenName,
       });
     }
   }
@@ -80,9 +82,7 @@ export class DailyTaskRunner {
       return result;
     } catch (error) {
       if (description) {
-        const token = this.tokenStore.gameTokens.find((t) => t.id === tokenId);
-        const tokenName = token?.name || tokenId;
-        this.log(`[${tokenName}] ${description} - 失败: ${error.message}`, "error");
+        this.log(`${description} - 失败: ${error.message}`, "error");
       }
       throw error;
     }
@@ -172,6 +172,12 @@ export class DailyTaskRunner {
 
   async run(tokenId, callbacks = {}, customSettings = null) {
     this.callbacks = callbacks;
+    this.currentTokenId = tokenId;
+    
+    // Attempt to find token name
+    const token = this.tokenStore.gameTokens?.find((t) => t.id === tokenId);
+    this.currentTokenName = token?.name || tokenId;
+
     const settings = customSettings || this.loadSettings(tokenId); // 优先使用传入的设置
 
     // 获取角色信息以确认 roleId 和 任务状态

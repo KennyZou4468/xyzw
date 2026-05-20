@@ -1770,16 +1770,23 @@ const executeBatchPlanWithFrontendModules = async (task, logger = () => {}) => {
   const taskFunctions = createFrontendTaskFunctionMap(deps);
 
   taskFunctions.startBatch = async () => {
-    if (selectedTokens.value.length === 0) return;
+    const tokenIds = selectedTokens.value;
+    if (tokenIds.length === 0) return;
+
+    addLog({
+      time: new Date().toLocaleTimeString(),
+      message: `[System] 批量任务准备就绪，共 ${tokenIds.length} 个账号: ${tokenIds.join(", ")}`,
+      type: "info",
+    });
 
     isRunning.value = true;
     shouldStop.value = false;
 
-    selectedTokens.value.forEach((id) => {
+    tokenIds.forEach((id) => {
       tokenStatus.value[id] = "waiting";
     });
 
-    const taskPromises = selectedTokens.value.map(async (tokenId) => {
+    const taskPromises = tokenIds.map(async (tokenId) => {
       if (shouldStop.value || fatalHandshakeFailure.value) return;
       tokenStatus.value[tokenId] = "running";
 

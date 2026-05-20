@@ -149,10 +149,35 @@ const normalizeLogMessage = (message) => {
   return (filtered.length > 0 ? filtered : lines).join(" ");
 };
 
+const formatLocalISO = (date) => {
+  const tzo = -date.getTimezoneOffset();
+  const dif = tzo >= 0 ? "+" : "-";
+  const pad = (num) => String(num).padStart(2, "0");
+  return (
+    date.getFullYear() +
+    "-" +
+    pad(date.getMonth() + 1) +
+    "-" +
+    pad(date.getDate()) +
+    "T" +
+    pad(date.getHours()) +
+    ":" +
+    pad(date.getMinutes()) +
+    ":" +
+    pad(date.getSeconds()) +
+    "." +
+    String(date.getMilliseconds()).padStart(3, "0") +
+    dif +
+    pad(Math.floor(Math.abs(tzo) / 60)) +
+    ":" +
+    pad(Math.abs(tzo) % 60)
+  );
+};
+
 const writeLog = (level, message) => {
   const normalizedMessage = normalizeLogMessage(message);
   if (!normalizedMessage) return;
-  const line = `${new Date().toISOString()} [${level}] ${normalizedMessage}`;
+  const line = `${formatLocalISO(new Date())} [${level}] ${normalizedMessage}`;
   console.log(line);
   ensureParentDir(logPath);
   fs.appendFileSync(logPath, `${line}\n`, "utf8");
@@ -173,7 +198,7 @@ const isProcessRunning = (pid) => {
 
 const tryAcquireLockFile = () => {
   ensureParentDir(lockPath);
-  const content = JSON.stringify({ pid: process.pid, startedAt: new Date().toISOString() });
+  const content = JSON.stringify({ pid: process.pid, startedAt: formatLocalISO(new Date()) });
   const fd = fs.openSync(lockPath, "wx");
   fs.writeFileSync(fd, content, "utf8");
   fs.closeSync(fd);
@@ -378,7 +403,11 @@ const reconcileRuntimeStateWithTasks = (previousTasks, nextTasks) => {
   let stateChanged = false;
 
   // Remove runtime state for tasks that no longer exist.
+  // IMPORTANT: Skip reserved keys like "global_logs"
+  const reservedKeys = new Set(["global_logs"]);
+
   for (const taskId of runtimeState.keys()) {
+    if (reservedKeys.has(taskId)) continue;
     if (!nextIds.has(taskId)) {
       if (runtimeState.delete(taskId)) {
         stateChanged = true;
@@ -554,7 +583,9 @@ const readSchedulerLogLines = (tail = 200, sinceMs = 0) => {
   };
 
   const normalized = lines.map((line, index) => {
-    const match = line.match(/^(\S+)\s+\[(\w+)\]\s+(.*)$/);
+    // Updated regex to handle local ISO format like 2026-05-20T11:31:26.000+08:00
+    const match = line.match(/^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}[+-]\d{2}:\d{2})\s+\[(\w+)\]\s+(.*)$/) 
+               || line.match(/^(\S+)\s+\[(\w+)\]\s+(.*)$/);
     if (!match) {
       if (isNoiseLogLine(line)) {
         return null;
@@ -573,7 +604,7 @@ const readSchedulerLogLines = (tail = 200, sinceMs = 0) => {
     const timestamp = Number.isFinite(parsedTime) ? parsedTime : Date.now();
 
     return {
-      time: new Date(isoTime).toLocaleTimeString(),
+      time: new Date(isoTime).toLocaleTimeString("zh-CN", { hour12: false }),
       timestamp,
       sequence: index + 1,
       type: typeMap[level] || "info",
@@ -917,8 +948,14 @@ const executeTask = async (task) => {
             : level === "success"
               ? "TASK"
               : "INFO";
-      // Prepend account name for better traceability
-      writeLog(mappedLevel, `[${accountName}] ${message}`);
+      
+      // Avoid redundant tagging: if message already starts with "[", 
+      // it likely already has specific account context from the sub-executor.
+      const finalMessage = message.startsWith("[") 
+        ? message 
+        : `[${accountName}] ${message}`;
+        
+      writeLog(mappedLevel, finalMessage);
     };
 
     const taskExecutionEngine = String(
