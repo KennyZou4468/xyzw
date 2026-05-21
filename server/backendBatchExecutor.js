@@ -1616,7 +1616,21 @@ const executeBatchPlanWithFrontendModules = async (task, logger = () => {}) => {
     logger(entry?.message || "", mapRunnerLogType(entry?.type));
   };
 
-  const latestTokenCredentials = mergeWithLatestTokenCredentials(rawTokenCredentials, addLog);
+  // Filter based on selectedTokens to respect user's selection
+  const selectedTokenIds = new Set(ensureArray(task?.selectedTokens || task?.payload?.selectedTokens));
+  const filteredCredentials = rawTokenCredentials.filter((item) => selectedTokenIds.has(item.id));
+  
+  if (filteredCredentials.length === 0 && selectedTokenIds.size > 0) {
+    addLog({
+      time: new Date().toLocaleTimeString(),
+      message: "警告：任务快照中未找到任何选中的账号 ID，将尝试使用快照中全部账号",
+      type: "warning",
+    });
+  }
+
+  const targetCredentials = filteredCredentials.length > 0 ? filteredCredentials : rawTokenCredentials;
+
+  const latestTokenCredentials = mergeWithLatestTokenCredentials(targetCredentials, addLog);
 
   const tokenCredentialsSanitized = await sanitizeTokenCredentialsBeforeRun(latestTokenCredentials, addLog);
 

@@ -668,7 +668,18 @@ const preparePlaywrightTokenCredentials = async (task, logger = () => {}) => {
     throw new Error("Playwright执行器缺少 payload.tokenCredentials");
   }
 
-  const merged = mergeWithLatestTokenCredentials(rawTokenCredentials, logger);
+  // Filter based on selectedTokens to respect user's selection
+  const selectedTokenIds = new Set(ensureArray(task?.selectedTokens || task?.payload?.selectedTokens));
+  const filteredCredentials = rawTokenCredentials.filter((item) => selectedTokenIds.has(item.id));
+
+  if (filteredCredentials.length === 0) {
+    logger("警告: 任务快照中未找到任何选中的账号 ID，将尝试使用快照中全部账号", "warn");
+    // Fallback: if selectedTokens is empty (shouldn't happen with proper UI sync), use the snapshot
+  }
+
+  const targetCredentials = filteredCredentials.length > 0 ? filteredCredentials : rawTokenCredentials;
+
+  const merged = mergeWithLatestTokenCredentials(targetCredentials, logger);
   const refreshed = await Promise.all(
     merged.map((item) => refreshCredentialTokenFromSource(item, logger)),
   );
