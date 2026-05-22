@@ -3,7 +3,7 @@ import { useAuthStore } from "@/stores/auth";
 
 // 创建axios实例
 const request = axios.create({
-  baseURL: "/api/v1",
+  baseURL: `${import.meta.env.BASE_URL}api/v1`.replace(/\/\//g, '/'),
   timeout: 10000,
   headers: {
     "Content-Type": "application/json",

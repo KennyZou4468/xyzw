@@ -468,7 +468,7 @@ const refreshTokenFromUrl = async (roleId, tokenData) => {
           response = await fetch(tokenData.sourceUrl);
         } else {
           // 跨域请求，使用代理
-          const proxyUrl = `/api/proxy?url=${encodeURIComponent(tokenData.sourceUrl)}`;
+          const proxyUrl = `${import.meta.env.BASE_URL}api/proxy?url=${encodeURIComponent(tokenData.sourceUrl)}`.replace(/\/\//g, '/');
           response = await fetch(proxyUrl);
         }
 

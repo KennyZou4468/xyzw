@@ -284,8 +284,9 @@ const generateQRCode = async () => {
  */
 const tryGetWeixinQR = async () => {
   try {
+    const baseUrl = (import.meta.env.BASE_URL || '/').endsWith('/') ? import.meta.env.BASE_URL : import.meta.env.BASE_URL + '/';
     const qrPageUrl =
-      "/api/weixin/connect/app/qrconnect" +
+      baseUrl + "api/weixin/connect/app/qrconnect" +
       "?appid=wxfb0d5667e5cb1c44" +
       "&bundleid=com.hortor.games.xyzw" +
       "&scope=snsapi_base,snsapi_userinfo,snsapi_friend,snsapi_message" +
@@ -314,7 +315,7 @@ const tryGetWeixinQR = async () => {
 
     if (qrUrl && qrUrl.startsWith("/")) {
       // 处理相对路径，确保走代理
-      qrUrl = "/api/weixin" + qrUrl;
+      qrUrl = baseUrl + "api/weixin" + qrUrl;
     }
 
     if (!qrUrl) {
@@ -324,7 +325,7 @@ const tryGetWeixinQR = async () => {
 
     if (!qrUrl) {
       const m2 = html.match(/\/connect\/qrcode\/[^"']*/i);
-      if (m2) qrUrl = "/api/weixin" + m2[0];
+      if (m2) qrUrl = baseUrl + "api/weixin" + m2[0];
     }
 
     if (!qrUrl) {
@@ -377,9 +378,10 @@ const checkScanStatus = async () => {
       return;
     }
 
+    const baseUrl = (import.meta.env.BASE_URL || '/').endsWith('/') ? import.meta.env.BASE_URL : import.meta.env.BASE_URL + '/';
     // 使用微信官方推荐的扫码状态轮询路径
     const url =
-      "/api/weixin/connect/l/qrconnect?uuid=" +
+      baseUrl + "api/weixin/connect/l/qrconnect?uuid=" +
       qrcodeUUID.value +
       "&f=url&_=" +
       Date.now();
@@ -504,8 +506,9 @@ const getEncryptedData = async (code) => {
     console.log("解密:", decodePayload(encoded));
   } catch (err) { }
 
+  const baseUrl = (import.meta.env.BASE_URL || '/').endsWith('/') ? import.meta.env.BASE_URL : import.meta.env.BASE_URL + '/';
   const loginUrl =
-    "/api/hortor/comb-login-server/api/v1/login" +
+    baseUrl + "api/hortor/comb-login-server/api/v1/login" +
     "?gameId=xyzwapp" +
     "&timestamp=" +
     Date.now() +

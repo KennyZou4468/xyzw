@@ -3620,7 +3620,7 @@ const cronNextRuns = ref([]);
 
 // Track executing tasks for UI loading state
 const executingTaskIds = ref([]);
-const schedulerApiBase = "/api/scheduler";
+const schedulerApiBase = `${import.meta.env.BASE_URL}api/scheduler`.replace(/\/\//g, '/');
 const schedulerUiLogsApi = `${schedulerApiBase}/ui-logs`;
 const isRefreshingLogs = ref(false);
 const logSyncState = ref("idle");

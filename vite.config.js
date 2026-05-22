@@ -21,6 +21,8 @@ async function safeImport(moduleName, humanName) {
 }
 
 export default defineConfig(async () => {
+  const base = process.env.VITE_APP_BASE || '/';
+
   let basicSsl;
   try {
     ({ default: basicSsl } = await import("@vitejs/plugin-basic-ssl"));
@@ -126,6 +128,7 @@ export default defineConfig(async () => {
   ].filter(Boolean);
 
   return {
+    base: base,
     plugins,
     resolve: {
       alias: {
