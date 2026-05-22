@@ -1,6 +1,10 @@
 FROM node:20-bookworm-slim AS web-builder
 WORKDIR /app
 
+# 传入构建参数
+ARG VITE_APP_BASE="/"
+ENV VITE_APP_BASE=${VITE_APP_BASE}
+
 COPY package.json package-lock.json ./
 RUN npm ci
 

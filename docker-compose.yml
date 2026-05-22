@@ -5,6 +5,8 @@ services:
     build:
       context: .
       dockerfile: docker/dockerfile
+      args:
+        VITE_APP_BASE: ${VITE_APP_BASE:-/}
     # 修改这里：本地构建会产生这个名字，GitHub Actions 也会推送到这个地址
     image: ccr.ccs.tencentyun.com/xyzw/zyzwapp:web
     ports:
