@@ -5,7 +5,7 @@
       <div class="container">
         <div class="nav-content">
           <div class="nav-brand">
-            <img src="/icons/xiaoyugan.png" alt="XYZW" class="brand-logo" />
+            <img :src="`${import.meta.env.BASE_URL}icons/xiaoyugan.png`.replace(/\/\//g, '/')" alt="XYZW" class="brand-logo" />
             <span class="brand-text">XYZW 游戏管理系统</span>
           </div>
 

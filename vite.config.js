@@ -21,7 +21,9 @@ async function safeImport(moduleName, humanName) {
 }
 
 export default defineConfig(async () => {
-  const base = process.env.VITE_APP_BASE || '/';
+  // Try multiple env sources, defaulting to '/' for local dev.
+  // Note: BASE_URL is sometimes set by deployment platforms.
+  const base = process.env.VITE_APP_BASE || process.env.BASE_URL || '/';
 
   let basicSsl;
   try {

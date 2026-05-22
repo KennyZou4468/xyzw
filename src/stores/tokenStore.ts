@@ -87,7 +87,7 @@ const activeConnections = useLocalStorage("activeConnections", {});
 // Token分组管理
 export const tokenGroups = useLocalStorage<TokenGroup[]>("tokenGroups", []);
 
-const schedulerApiBase = "/api/scheduler";
+const schedulerApiBase = `${import.meta.env.BASE_URL}api/scheduler`.replace(/\/\//g, '/');
 
 /**
  * 重构后的Token管理存储

@@ -4,7 +4,7 @@
     <nav class="dashboard-nav">
       <div class="nav-container">
         <div class="nav-brand">
-          <img src="/icons/xiaoyugan.png" alt="XYZW" class="brand-logo" />
+          <img :src="`${import.meta.env.BASE_URL}icons/xiaoyugan.png`.replace(/\/\//g, '/')" alt="XYZW" class="brand-logo" />
           <div class="brand-toggle" @click="isMobileMenuOpen = true">
             <n-icon>
               <Menu />
@@ -76,9 +76,9 @@
           <n-dropdown :options="userMenuOptions" @select="handleUserAction">
             <div class="user-info">
               <n-avatar
-                :src="selectedToken?.avatar || '/icons/xiaoyugan.png'"
+                :src="selectedToken?.avatar || `${import.meta.env.BASE_URL}icons/xiaoyugan.png`.replace(/\/\//g, '/')"
                 size="medium"
-                fallback-src="/icons/xiaoyugan.png"
+                fallback-src="icons/xiaoyugan.png"
               />
               <span class="username">{{
                 selectedToken?.name || "未选择Token"
