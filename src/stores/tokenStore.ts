@@ -98,6 +98,7 @@ export const useTokenStore = defineStore("tokens", () => {
 
   // --- 云端同步逻辑 ---
   const isSyncing = ref(false);
+  const isInitialized = ref(false);
 
   const pullTokensFromBackend = async () => {
     if (isSyncing.value) return;
@@ -106,38 +107,34 @@ export const useTokenStore = defineStore("tokens", () => {
       const response = await fetch(`${schedulerApiBase}/tokens`);
       if (!response.ok) return;
       const data = await response.json();
-      if (data.ok && Array.isArray(data.tokens) && data.tokens.length > 0) {
-        // 合并逻辑：以云端为准，但也保留本地特有的（如果存在）
-        const localIds = new Set(gameTokens.value.map(t => t.id));
-        const remoteTokens = data.tokens;
-        
-        let merged = [...remoteTokens];
-        gameTokens.value.forEach(local => {
-           if (!remoteTokens.some((r: any) => r.id === local.id)) {
-             merged.push(local);
-           }
-        });
-
-        if (JSON.stringify(gameTokens.value) !== JSON.stringify(merged)) {
-          gameTokens.value = merged;
-          tokenLogger.info(`已从云端同步并合并了 ${remoteTokens.length} 个账号`);
+      if (data.ok && Array.isArray(data.tokens)) {
+        // 如果云端有数据，以云端为准（实现“不同浏览器看到同一个界面”）
+        if (data.tokens.length > 0) {
+          gameTokens.value = data.tokens;
+          tokenLogger.info(`已从云端同步了 ${data.tokens.length} 个账号`);
+        } else if (gameTokens.value.length > 0) {
+          // 如果云端为空但本地有账号（首次迁移场景），则立即备份到云端
+          tokenLogger.info("检测到本地有账号但云端为空，正在初始化云端存储...");
+          await pushTokensToBackend();
         }
       }
     } catch (err) {
       tokenLogger.warn("拉取云端账号失败:", err);
     } finally {
       isSyncing.value = false;
+      isInitialized.value = true;
     }
   };
 
   const pushTokensToBackend = async () => {
-    if (gameTokens.value.length === 0) return;
+    // 允许推送空数组以同步删除操作
     try {
       await fetch(`${schedulerApiBase}/tokens`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(gameTokens.value)
       });
+      tokenLogger.debug("账号已同步至云端");
     } catch (err) {
       tokenLogger.warn("推送到云端失败:", err);
     }
@@ -1873,6 +1870,9 @@ export const useTokenStore = defineStore("tokens", () => {
     hasTokens,
     selectedToken,
     selectedTokenRoleInfo,
+
+    // 状态
+    isInitialized,
 
     // Token管理方法
     addToken,

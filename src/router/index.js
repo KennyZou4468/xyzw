@@ -151,8 +151,13 @@ const router = createRouter({
 })
 
 // 导航守卫
-router.beforeEach((to, from, next) => {
+router.beforeEach(async (to, from, next) => {
   const tokenStore = useTokenStore()
+
+  // 1. 等待初始化完成（云端同步）
+  if (!tokenStore.isInitialized) {
+    await tokenStore.pullTokensFromBackend();
+  }
 
   // 设置页面标题
   document.title = to.meta.title ? `${to.meta.title} - XYZW 游戏管理系统` : 'XYZW 游戏管理系统'

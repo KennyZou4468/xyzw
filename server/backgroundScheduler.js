@@ -15,10 +15,10 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const defaultTasksPath = path.resolve(__dirname, "scheduler.tasks.json");
-const defaultTokensPath = path.resolve(__dirname, "scheduler.tokens.json");
+const defaultLockPath = path.resolve(__dirname, "scheduler.lock");
+const defaultTokensPath = path.resolve(path.dirname(defaultLockPath), "scheduler.tokens.json");
 const defaultLogPath = path.resolve(__dirname, "scheduler.log");
 const defaultUiLogsPath = path.resolve(__dirname, "scheduler.ui.logs.json");
-const defaultLockPath = path.resolve(__dirname, "scheduler.lock");
 
 const parseArgs = (argv) => {
   const args = {};
