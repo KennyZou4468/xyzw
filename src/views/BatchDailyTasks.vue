@@ -4286,6 +4286,7 @@ const saveTask = () => {
     executionEngine: taskForm.executionEngine,
     allowSameRoleParallel: Boolean(taskForm.allowSameRoleParallel),
     enabled: taskForm.enabled,
+    payload: editingTask.value?.payload ? { ...editingTask.value.payload } : {},
   };
 
   let isNew = !editingTask.value;
