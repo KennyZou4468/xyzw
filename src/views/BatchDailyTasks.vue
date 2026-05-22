@@ -58,6 +58,16 @@
                 >
                   <n-button size="small">导入配置</n-button>
                 </n-upload>
+                <n-button 
+                  size="small" 
+                  type="warning" 
+                  ghost 
+                  @click="syncAccountsFromBackend"
+                  :loading="isSyncingAccounts"
+                  title="从后台定时任务快照中恢复账号"
+                >
+                  从后台恢复账号
+                </n-button>
               </div>
             </div>
           </div>
@@ -6041,6 +6051,73 @@ const backendLogSyncIntervalMs = 2000;
 let backendLogSyncTimer = null;
 const backendLogCursorMs = ref(0);
 const localLogSequence = ref(0);
+const isSyncingAccounts = ref(false);
+
+const syncAccountsFromBackend = async () => {
+  isSyncingAccounts.value = true;
+  try {
+    const remoteTasks = await fetchSchedulerTasks();
+    if (remoteTasks.length === 0) {
+      message.info("后台暂无定时任务可供恢复");
+      return;
+    }
+
+    const allCredentials = remoteTasks.flatMap(task => 
+      ensureArray(task?.payload?.tokenCredentials)
+    );
+
+    if (allCredentials.length === 0) {
+      message.info("定时任务中未包含任何账号快照");
+      return;
+    }
+
+    // Deduplicate by ID
+    const uniqueMap = new Map();
+    allCredentials.forEach(cred => {
+      if (cred?.id && !uniqueMap.has(cred.id)) {
+        uniqueMap.set(cred.id, cred);
+      }
+    });
+
+    const uniqueCredentials = Array.from(uniqueMap.values());
+    let importedCount = 0;
+    
+    uniqueCredentials.forEach(cred => {
+      const exists = gameTokens.value.some(t => t.id === cred.id);
+      if (!exists) {
+        gameTokens.value.push({
+          id: cred.id,
+          name: cred.name || "",
+          token: cred.token,
+          wsUrl: cred.wsUrl || null,
+          importMethod: cred.importMethod || "import",
+          sourceUrl: cred.sourceUrl || null,
+          binData: cred.binData || null,
+          binDataEncoding: cred.binDataEncoding || "base64",
+          updatedAt: cred.updatedAt || new Date().toISOString(),
+          createdAt: new Date().toISOString(),
+          lastUsed: new Date().toISOString(),
+          isActive: true
+        });
+        importedCount++;
+      }
+    });
+
+    if (importedCount > 0) {
+      message.success(`成功从后台恢复了 ${importedCount} 个账号`);
+      // Update task selection state for newly imported tokens
+      await loadScheduledTasks();
+    } else {
+      message.info("所有后台账号已存在，无需恢复");
+    }
+  } catch (error) {
+    console.error("Sync accounts failed:", error);
+    message.error("恢复账号失败: " + error.message);
+  } finally {
+    isSyncingAccounts.value = false;
+  }
+};
+
 const errorCount = computed(() => {
   return logs.value.filter((log) => log.type === "error").length;
 });
