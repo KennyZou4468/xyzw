@@ -6056,9 +6056,13 @@ const isSyncingAccounts = ref(false);
 const syncAccountsFromBackend = async () => {
   isSyncingAccounts.value = true;
   try {
+    // 1. 优先尝试从全局云端同步
+    await tokenStore.pullTokensFromBackend();
+    
+    // 2. 同时也保留原来的“从定时任务快照恢复”逻辑作为兜底
     const remoteTasks = await fetchSchedulerTasks();
-    if (remoteTasks.length === 0) {
-      message.info("后台暂无定时任务可供恢复");
+    if (remoteTasks.length === 0 && gameTokens.value.length === 0) {
+      message.info("后台暂无账号数据可供恢复");
       return;
     }
 

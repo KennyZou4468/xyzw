@@ -1,6 +1,6 @@
 import { useLocalStorage } from "@vueuse/core";
 import { defineStore } from "pinia";
-import { computed, ref } from "vue";
+import { computed, ref, watch } from "vue";
 
 import { g_utils, ProtoMsg } from "@/utils/bonProtocol";
 import { gameLogger, tokenLogger, wsLogger } from "@/utils/logger";
@@ -87,13 +87,73 @@ const activeConnections = useLocalStorage("activeConnections", {});
 // Token分组管理
 export const tokenGroups = useLocalStorage<TokenGroup[]>("tokenGroups", []);
 
+const schedulerApiBase = "/api/scheduler";
+
 /**
  * 重构后的Token管理存储
- * 以名称-token列表形式管理多个游戏角色
  */
 export const useTokenStore = defineStore("tokens", () => {
   const wsConnections = ref<WebCtx>({}); // WebSocket连接状态
   const connectionLocks = ref<LockCtx>({}); // 连接操作锁，防止竞态条件
+
+  // --- 云端同步逻辑 ---
+  const isSyncing = ref(false);
+
+  const pullTokensFromBackend = async () => {
+    if (isSyncing.value) return;
+    isSyncing.value = true;
+    try {
+      const response = await fetch(`${schedulerApiBase}/tokens`);
+      if (!response.ok) return;
+      const data = await response.json();
+      if (data.ok && Array.isArray(data.tokens) && data.tokens.length > 0) {
+        // 合并逻辑：以云端为准，但也保留本地特有的（如果存在）
+        const localIds = new Set(gameTokens.value.map(t => t.id));
+        const remoteTokens = data.tokens;
+        
+        let merged = [...remoteTokens];
+        gameTokens.value.forEach(local => {
+           if (!remoteTokens.some((r: any) => r.id === local.id)) {
+             merged.push(local);
+           }
+        });
+
+        if (JSON.stringify(gameTokens.value) !== JSON.stringify(merged)) {
+          gameTokens.value = merged;
+          tokenLogger.info(`已从云端同步并合并了 ${remoteTokens.length} 个账号`);
+        }
+      }
+    } catch (err) {
+      tokenLogger.warn("拉取云端账号失败:", err);
+    } finally {
+      isSyncing.value = false;
+    }
+  };
+
+  const pushTokensToBackend = async () => {
+    if (gameTokens.value.length === 0) return;
+    try {
+      await fetch(`${schedulerApiBase}/tokens`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(gameTokens.value)
+      });
+    } catch (err) {
+      tokenLogger.warn("推送到云端失败:", err);
+    }
+  };
+
+  // 监听本地变化自动同步
+  let pushTimer: any = null;
+  const debouncedPush = () => {
+    if (pushTimer) clearTimeout(pushTimer);
+    pushTimer = setTimeout(pushTokensToBackend, 3000);
+  };
+
+  watch(gameTokens, () => {
+    debouncedPush();
+  }, { deep: true });
+  // ------------------
 
   // 游戏数据存储
   const gameData = ref({
@@ -236,6 +296,7 @@ export const useTokenStore = defineStore("tokens", () => {
     };
 
     gameTokens.value.push(newToken as TokenData);
+    debouncedPush();
     return newToken;
   };
 
@@ -267,6 +328,7 @@ export const useTokenStore = defineStore("tokens", () => {
       if (tokenValueChanged || sourceChanged || importMethodChanged) {
         clearTokenRefreshUnrecoverable(tokenId);
       }
+      debouncedPush();
       return true;
     }
     return false;
@@ -287,6 +349,7 @@ export const useTokenStore = defineStore("tokens", () => {
 
     // 同时删除IndexedDB中的数据
     await deleteArrayBuffer(tokenId);
+    debouncedPush();
 
     return true;
   };
@@ -1670,6 +1733,9 @@ export const useTokenStore = defineStore("tokens", () => {
     // 启动连接监控
     connectionMonitor.startMonitoring();
 
+    // 拉取云端账号
+    pullTokensFromBackend();
+
     // 设置跨标签页监听
     setupCrossTabListener();
 
@@ -1843,6 +1909,10 @@ export const useTokenStore = defineStore("tokens", () => {
     upgradeTokenToPermanent,
     initTokenStore,
     refreshTokenForTaskExecution,
+
+    // 云端同步方法
+    pullTokensFromBackend,
+    pushTokensToBackend,
 
     //游戏内发送消息方法
     sendMessageToLegion,

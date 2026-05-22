@@ -18,9 +18,11 @@
 import { computed, onMounted, onUnmounted } from "vue";
 import { darkTheme } from "naive-ui";
 import { useTheme } from "@/composables/useTheme";
+import { useTokenStore } from "@/stores/tokenStore";
 
 const { isDark, initTheme, setupSystemThemeListener, updateReactiveState } =
   useTheme();
+const tokenStore = useTokenStore();
 
 // Naive UI 主题
 const naiveTheme = computed(() => {
@@ -40,6 +42,7 @@ const handleThemeChange = () => {
 onMounted(() => {
   initTheme();
   setupSystemThemeListener();
+  tokenStore.initTokenStore();
 
   // 监听自定义主题变化事件
   window.addEventListener("theme-change", handleThemeChange);

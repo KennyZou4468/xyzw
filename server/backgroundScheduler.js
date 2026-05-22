@@ -15,6 +15,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const defaultTasksPath = path.resolve(__dirname, "scheduler.tasks.json");
+const defaultTokensPath = path.resolve(__dirname, "scheduler.tokens.json");
 const defaultLogPath = path.resolve(__dirname, "scheduler.log");
 const defaultUiLogsPath = path.resolve(__dirname, "scheduler.ui.logs.json");
 const defaultLockPath = path.resolve(__dirname, "scheduler.lock");
@@ -38,6 +39,7 @@ const parseArgs = (argv) => {
 
 const args = parseArgs(process.argv.slice(2));
 const tasksPath = path.resolve(String(args.tasks || defaultTasksPath));
+const tokensPath = path.resolve(String(args.tokens || defaultTokensPath));
 const logPath = path.resolve(String(args.log || defaultLogPath));
 const uiLogsPath = path.resolve(String(args["ui-logs"] || defaultUiLogsPath));
 const tickMs = Number(args["tick-ms"] || 1000);
@@ -650,6 +652,39 @@ const startApiServer = () => {
 
     if (req.method === "OPTIONS") {
       sendJson(res, 200, { ok: true });
+      return;
+    }
+
+    if (req.method === "GET" && url.pathname === "/api/scheduler/tokens") {
+      try {
+        if (!fs.existsSync(tokensPath)) {
+          sendJson(res, 200, { ok: true, tokens: [] });
+          return;
+        }
+        const text = fs.readFileSync(tokensPath, "utf8");
+        const parsed = JSON.parse(text || "[]");
+        sendJson(res, 200, { ok: true, tokens: parsed });
+      } catch (error) {
+        sendJson(res, 500, { ok: false, error: error.message });
+      }
+      return;
+    }
+
+    if (req.method === "PUT" && url.pathname === "/api/scheduler/tokens") {
+      let body = "";
+      req.on("data", (chunk) => {
+        body += chunk.toString();
+      });
+      req.on("end", () => {
+        try {
+          const tokens = JSON.parse(body || "[]");
+          ensureParentDir(tokensPath);
+          fs.writeFileSync(tokensPath, JSON.stringify(tokens, null, 2), "utf8");
+          sendJson(res, 200, { ok: true, count: tokens.length });
+        } catch (error) {
+          sendJson(res, 400, { ok: false, error: error.message });
+        }
+      });
       return;
     }
 
