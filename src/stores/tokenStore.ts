@@ -105,20 +105,25 @@ export const useTokenStore = defineStore("tokens", () => {
     isSyncing.value = true;
     try {
       const response = await fetch(`${schedulerApiBase}/tokens`);
-      if (!response.ok) return;
+      if (!response.ok) {
+        throw new Error(`pull failed: http ${response.status}`);
+      }
       const data = await response.json();
       if (data.ok && Array.isArray(data.tokens)) {
         // 如果云端有数据，以云端为准（实现“不同浏览器看到同一个界面”）
         if (data.tokens.length > 0) {
-          gameTokens.value = data.tokens;
-          tokenLogger.info(`已从云端同步了 ${data.tokens.length} 个账号`);
+          // 只有在数据真正不同时才更新，防止触发 push 循环
+          if (JSON.stringify(gameTokens.value) !== JSON.stringify(data.tokens)) {
+            gameTokens.value = data.tokens;
+            tokenLogger.info(`已从云端同步了 ${data.tokens.length} 个账号`);
+          }
         } else if (gameTokens.value.length > 0) {
           // 如果云端为空但本地有账号（首次迁移场景），则立即备份到云端
           tokenLogger.info("检测到本地有账号但云端为空，正在初始化云端存储...");
           await pushTokensToBackend();
         }
       }
-    } catch (err) {
+    } catch (err: any) {
       tokenLogger.warn("拉取云端账号失败:", err);
     } finally {
       isSyncing.value = false;
@@ -127,22 +132,40 @@ export const useTokenStore = defineStore("tokens", () => {
   };
 
   const pushTokensToBackend = async () => {
-    // 允许推送空数组以同步删除操作
+    if (isSyncing.value) return; // 正在拉取时不要推送
+    
     try {
-      await fetch(`${schedulerApiBase}/tokens`, {
+      // 优先尝试 PUT，如果失败则尝试 POST（兼容某些限制严格的网关）
+      const payload = JSON.stringify(gameTokens.value);
+      let response = await fetch(`${schedulerApiBase}/tokens`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(gameTokens.value)
+        body: payload
       });
+
+      if (!response.ok && response.status === 405) {
+        // Method Not Allowed, fallback to POST
+        response = await fetch(`${schedulerApiBase}/tokens`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: payload
+        });
+      }
+
+      if (!response.ok) {
+        throw new Error(`push failed: http ${response.status}`);
+      }
+      
       tokenLogger.debug("账号已同步至云端");
-    } catch (err) {
+    } catch (err: any) {
       tokenLogger.warn("推送到云端失败:", err);
     }
   };
 
-  // 监听本地变化自动同步
+  // 监听本地变化自动同步 (增加静默标志，防止初始化拉取触发推送)
   let pushTimer: any = null;
   const debouncedPush = () => {
+    if (!isInitialized.value || isSyncing.value) return;
     if (pushTimer) clearTimeout(pushTimer);
     pushTimer = setTimeout(pushTokensToBackend, 3000);
   };

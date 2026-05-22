@@ -663,6 +663,7 @@ const startApiServer = () => {
         }
         const text = fs.readFileSync(tokensPath, "utf8");
         const parsed = JSON.parse(text || "[]");
+        console.debug(`[DEBUG] cloud tokens requested, count=${parsed.length}`);
         sendJson(res, 200, { ok: true, tokens: parsed });
       } catch (error) {
         sendJson(res, 500, { ok: false, error: error.message });
@@ -670,7 +671,7 @@ const startApiServer = () => {
       return;
     }
 
-    if (req.method === "PUT" && url.pathname === "/api/scheduler/tokens") {
+    if ((req.method === "PUT" || req.method === "POST") && url.pathname === "/api/scheduler/tokens") {
       let body = "";
       req.on("data", (chunk) => {
         body += chunk.toString();
@@ -680,10 +681,15 @@ const startApiServer = () => {
           const tokens = JSON.parse(body || "[]");
           ensureParentDir(tokensPath);
           fs.writeFileSync(tokensPath, JSON.stringify(tokens, null, 2), "utf8");
+          writeLog("INFO", `cloud tokens synced and persisted (${req.method}), count=${tokens.length}`);
           sendJson(res, 200, { ok: true, count: tokens.length });
         } catch (error) {
+          writeLog("ERROR", `failed to parse cloud tokens: ${error.message}`);
           sendJson(res, 400, { ok: false, error: error.message });
         }
+      });
+      req.on("error", (err) => {
+        writeLog("ERROR", `cloud tokens upload error: ${err.message}`);
       });
       return;
     }
